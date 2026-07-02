@@ -1,0 +1,27 @@
+# Credentials — never committed, even sandbox ones
+.env
+.env.*
+!.env.example
+
+# Local data
+*.db
+*.db-journal
+*.sqlite
+
+# Dependencies & build output
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
+logs/
+
+# OS / editor noise
+.DS_Store
+.idea/
+.vscode/
+
+# Private build notes (not part of the public artifact)
+CLAUDE.md
+.claude/
