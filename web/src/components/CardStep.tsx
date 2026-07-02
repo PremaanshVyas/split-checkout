@@ -107,11 +107,15 @@ export function CardStep({ slot, stepNumber, clientSecret, currency, onConfirmSe
       )}
 
       <div ref={containerRef} className="card-element-container" />
-      <div id="awx-auth-form" />
 
       <button className="primary" disabled={!ready || busy} onClick={placeHold}>
         {busy ? "Placing hold…" : `Place hold for ${fmt(slot.amount, currency)}`}
       </button>
+      {busy && (
+        <p className="muted small">
+          If your bank asks you to verify this payment, a verification window will open.
+        </p>
+      )}
     </section>
   );
 }

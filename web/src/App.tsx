@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "./api";
 import type { OrderView, Product } from "./types";
+import { ProductGrid } from "./components/ProductGrid";
 import { SplitEditor } from "./components/SplitEditor";
 import { CardStep } from "./components/CardStep";
 import { StatusChip } from "./components/StatusChip";
 import { SuccessScreen } from "./components/SuccessScreen";
+import { DemoGuide } from "./components/DemoGuide";
 import "./App.css";
 
 type Phase = "shop" | "split" | "checkout";
@@ -13,6 +15,7 @@ const fmt = (n: number, currency: string) =>
   new Intl.NumberFormat("en-AU", { style: "currency", currency }).format(n);
 
 export default function App() {
+  const [products, setProducts] = useState<Product[] | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
   const [phase, setPhase] = useState<Phase>("shop");
   const [order, setOrder] = useState<OrderView | null>(null);
@@ -23,7 +26,7 @@ export default function App() {
   const [fatalError, setFatalError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.getProduct().then(setProduct).catch(() => setFatalError("Could not reach the server."));
+    api.getProducts().then(setProducts).catch(() => setFatalError("Could not reach the server."));
   }, []);
 
   const activeSlotIndex = useMemo(() => {
@@ -32,11 +35,20 @@ export default function App() {
   }, [order]);
   const activeSlot = activeSlotIndex >= 0 ? order?.slots[activeSlotIndex] : undefined;
 
+  function backToShop() {
+    setPhase("shop");
+    setProduct(null);
+    setOrder(null);
+    setSecrets({});
+    setFatalError(null);
+  }
+
   async function startOrder(splits: number[]) {
+    if (!product) return;
     setBusy(true);
     setFatalError(null);
     try {
-      const created = await api.createOrder(splits);
+      const created = await api.createOrder(product.sku, splits);
       const secretMap: Record<string, string> = {};
       for (const slot of created.slots) {
         if (slot.client_secret) secretMap[slot.id] = slot.client_secret;
@@ -67,55 +79,63 @@ export default function App() {
     }
   }
 
-  if (fatalError && !order) {
-    return (
-      <main className="shell">
-        <p className="error">{fatalError}</p>
-      </main>
-    );
-  }
-  if (!product) {
-    return (
-      <main className="shell">
-        <p className="muted">Loading…</p>
-      </main>
-    );
-  }
-
   return (
     <main className="shell">
       <header className="masthead">
-        <span className="brand">AURORA &amp; CO.</span>
+        <button className="brand" onClick={backToShop}>
+          AURORA &amp; CO.
+        </button>
         <span className="muted small">Demo store · Airwallex sandbox · no real money</span>
       </header>
 
-      {phase === "shop" && (
-        <section className="product-page">
-          <div className="product-visual" aria-hidden>
-            ☕
+      {/* 3DS bank-verification challenges render here as a modal (see App.css). */}
+      <div id="awx-auth-form" />
+
+      {fatalError && !order && <p className="error">{fatalError}</p>}
+
+      {phase === "shop" &&
+        (products ? (
+          <ProductGrid
+            products={products}
+            onSelect={(p) => {
+              setProduct(p);
+              setPhase("split");
+            }}
+          />
+        ) : (
+          !fatalError && <p className="muted">Loading…</p>
+        ))}
+
+      {phase === "split" && product && (
+        <div className="split-page">
+          <button className="back-link" onClick={backToShop}>
+            ← Back to store
+          </button>
+          <div className="split-product-summary">
+            <div className="split-product-visual" aria-hidden>
+              {product.art}
+            </div>
+            <div>
+              <h1>{product.name}</h1>
+              <p className="muted">{product.description}</p>
+              <p className="price">{fmt(product.price, product.currency)}</p>
+            </div>
           </div>
-          <div className="product-info">
-            <h1>{product.name}</h1>
-            <p className="muted">{product.description}</p>
-            <p className="price">{fmt(product.price, product.currency)}</p>
-            <button className="primary" onClick={() => setPhase("split")}>
-              Pay with multiple cards
-            </button>
-            <p className="muted small">
-              This split flow is the demo — a single-card button would sit alongside it in a real
-              store.
-            </p>
-          </div>
-        </section>
+          <SplitEditor product={product} busy={busy} onConfirm={startOrder} />
+          {fatalError && <p className="error">{fatalError}</p>}
+        </div>
       )}
 
-      {phase === "split" && <SplitEditor product={product} busy={busy} onConfirm={startOrder} />}
-
-      {phase === "checkout" && order && (
+      {phase === "checkout" && order && product && (
         <div className="checkout-grid">
           <div className="checkout-main">
             {order.status === "captured" ? (
-              <SuccessScreen order={order} />
+              <>
+                <SuccessScreen order={order} />
+                <button className="back-link" onClick={backToShop}>
+                  ← Continue shopping
+                </button>
+              </>
             ) : activeSlot ? (
               <CardStep
                 key={activeSlot.id}
@@ -127,52 +147,47 @@ export default function App() {
               />
             ) : (
               <section className="card-step">
-                <h2>Capturing…</h2>
-                <p className="muted">Both holds are in place — completing the charges.</p>
+                <h2>Completing your payment…</h2>
+                <p className="muted">Both holds are in place — capturing the charges together.</p>
               </section>
             )}
             {fatalError && <p className="error">{fatalError}</p>}
           </div>
 
-          <aside className="order-summary">
-            <h3>Order</h3>
-            <p>
-              {product.name}
-              <br />
-              <strong>{fmt(order.total_amount, order.currency)}</strong>
-            </p>
-            <ol className="slot-list">
-              {order.slots.map((slot, i) => (
-                <li key={slot.id}>
-                  <span>
-                    Card {i + 1} · {fmt(slot.amount, order.currency)}
-                  </span>
-                  <StatusChip status={slot.status} declined={Boolean(slot.last_error_code)} />
-                </li>
-              ))}
-            </ol>
-            {order.status !== "captured" && (
-              <p className="muted small">
-                Holds are not charges. If any card fails, nothing is captured and the holds simply
-                expire.
-              </p>
-            )}
-            <details className="test-cards">
-              <summary>Sandbox test cards</summary>
+          <aside className="sidebar">
+            <div className="order-summary">
+              <h3>Order</h3>
               <p>
-                Success: <code>4035 5010 0000 0008</code>
+                {product.name}
                 <br />
-                Declines at any amount: <code>4646 4646 4646 4644</code>
-                <br />
-                Insufficient funds: <code>5307 8373 6054 4518</code> on an $80.51 slot (use the
-                “Decline demo” split; enter <code>1234</code> if a 3DS prompt appears)
-                <br />
-                Expiry: any future date · CVC: any 3 digits
+                <strong>{fmt(order.total_amount, order.currency)}</strong>
               </p>
-            </details>
+              <ol className="slot-list">
+                {order.slots.map((slot, i) => (
+                  <li key={slot.id}>
+                    <span>
+                      Card {i + 1} · {fmt(slot.amount, order.currency)}
+                    </span>
+                    <StatusChip status={slot.status} declined={Boolean(slot.last_error_code)} />
+                  </li>
+                ))}
+              </ol>
+              {order.status !== "captured" && (
+                <p className="muted small">
+                  A hold is not a charge. If any card fails, nothing is captured and the holds
+                  simply expire.
+                </p>
+              )}
+            </div>
+            <DemoGuide />
           </aside>
         </div>
       )}
+
+      <footer className="footer muted small">
+        Independent demo built on Airwallex's public sandbox API — not an Airwallex product. No
+        real cards, no real money.
+      </footer>
     </main>
   );
 }

@@ -1,9 +1,11 @@
 export interface Product {
   sku: string;
   name: string;
+  tagline: string;
   description: string;
   price: number;
   currency: string;
+  art: string;
 }
 
 export type SlotStatus = "created" | "authorized" | "captured" | "failed" | "cancelled";

@@ -10,13 +10,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  getProduct: () => request<Product>("/api/product"),
+  getProducts: () => request<Product[]>("/api/products"),
 
-  createOrder: (splits: number[]) =>
+  createOrder: (sku: string, splits: number[]) =>
     request<OrderView>("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ splits }),
+      body: JSON.stringify({ sku, splits }),
     }),
 
   verifySlot: (orderId: string, slotId: string, clientErrorCode?: string) =>

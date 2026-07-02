@@ -111,3 +111,13 @@ Every non-obvious choice in this project, dated, with the alternatives considere
 **Alternatives:** Render (needs a GitHub repo connection — this repo is local-only until the pitch); two+ machines for availability; a Fly volume or managed Postgres for durable state.
 
 **Why:** Fly deploys straight from the local working tree, which fits a private pre-pitch repo. The first deploy defaulted to two machines "for high availability" and immediately demonstrated why that's wrong here: each machine had its own SQLite file, so an order created on one machine 404'd when the verify request landed on the other. One machine is the honest topology for a SQLite demo. Order state is checkout-session-scoped, so losing it on redeploy/restart is acceptable — noted in README limitations; production would use Postgres and any number of instances.
+
+---
+
+## 2026-07-02 — 3DS challenges render in a modal, not inline
+
+**Decision:** The `authFormContainer` div the SDK injects bank-verification challenges into is a single top-level element styled as a centered modal with a dimmed backdrop (pure CSS on `:not(:empty)` — no JS observer needed). Previously it sat inline inside the card step.
+
+**Alternatives:** Inline rendering under the card fields (our first pass), or the SDK's default behavior with no container.
+
+**Why:** User testing found the OTP form clipped and partly invisible inline — a shopper mid-payment saw "Placing hold…" and a fragment of a bank form. A challenge is modal by nature: it blocks the payment, comes from a third party (the issuer), and must be completed or cancelled. The modal makes the full "Purchase Authentication" form visible in one piece with an explanatory caption. Empirically re-verified the full transaction matrix afterwards (see EVIDENCE.md): frictionless 3DS, challenge success, challenge failure, authentication failure, issuer decline behind 3DS, risk decline, and invalid card all surface correct states and human-readable copy.

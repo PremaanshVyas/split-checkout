@@ -1,7 +1,7 @@
 .shell {
-  max-width: 960px;
+  max-width: 1040px;
   margin: 0 auto;
-  padding: 24px 20px 64px;
+  padding: 24px 20px 40px;
 }
 
 .masthead {
@@ -10,12 +10,17 @@
   align-items: baseline;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 40px;
+  margin-bottom: 36px;
 }
 
 .brand {
   font-weight: 700;
   letter-spacing: 0.18em;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 1rem;
+  color: var(--ink);
 }
 
 .muted {
@@ -34,33 +39,123 @@
   padding: 10px 14px;
 }
 
-/* --- Product page --- */
-
-.product-page {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 48px;
-  align-items: center;
+.footer {
+  margin-top: 56px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  text-align: center;
 }
 
-.product-visual {
-  aspect-ratio: 1;
+.back-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.back-link:hover {
+  color: var(--ink);
+}
+
+/* --- Store --- */
+
+.store-hero {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.store-hero h1 {
+  margin: 0 0 6px;
+  font-size: 2.1rem;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px;
+}
+
+.product-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 150ms, transform 150ms;
+}
+
+.product-card:hover {
+  box-shadow: 0 8px 24px rgba(28, 25, 23, 0.08);
+  transform: translateY(-2px);
+}
+
+.product-card-visual {
   display: grid;
   place-items: center;
-  font-size: 96px;
+  font-size: 64px;
+  padding: 36px 0;
   background: linear-gradient(160deg, #f3ede4, #e7dccd);
-  border-radius: 16px;
 }
 
-.product-info h1 {
-  margin: 0 0 8px;
-  font-size: 2rem;
+.product-card-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.product-card-body h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.product-card-price {
+  font-weight: 700;
+  font-size: 1.15rem;
+  margin: 8px 0 12px;
+}
+
+.product-card .primary {
+  margin-top: auto;
+}
+
+/* --- Split page --- */
+
+.split-page {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.split-product-summary {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.split-product-summary h1 {
+  margin: 0 0 6px;
+  font-size: 1.5rem;
+}
+
+.split-product-visual {
+  flex: 0 0 108px;
+  height: 108px;
+  display: grid;
+  place-items: center;
+  font-size: 52px;
+  background: linear-gradient(160deg, #f3ede4, #e7dccd);
+  border-radius: 14px;
 }
 
 .price {
-  font-size: 1.6rem;
+  font-size: 1.3rem;
   font-weight: 700;
-  margin: 20px 0;
+  margin: 10px 0 0;
 }
 
 /* --- Buttons --- */
@@ -87,8 +182,6 @@
 /* --- Split editor --- */
 
 .split-editor {
-  max-width: 520px;
-  margin: 0 auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -136,6 +229,7 @@
   display: flex;
   gap: 8px;
   margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
 .split-presets button {
@@ -154,7 +248,7 @@
 
 .checkout-grid {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 1fr 320px;
   gap: 32px;
   align-items: start;
 }
@@ -165,6 +259,7 @@
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 32px;
+  margin-bottom: 16px;
 }
 
 .card-step h2 {
@@ -180,18 +275,71 @@
   min-height: 48px;
 }
 
-/* --- Order summary --- */
+/* --- 3DS bank verification modal ---
+   The Airwallex SDK injects the bank's challenge into #awx-auth-form.
+   While it has content, present it as a centered modal so the OTP form
+   is fully visible instead of squeezed into the card step. */
 
-.order-summary {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
+#awx-auth-form:not(:empty) {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 24px;
+  background: rgba(28, 25, 23, 0.55);
+}
+
+#awx-auth-form:not(:empty)::before {
+  content: "Your bank is verifying this payment — complete the check below.";
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 0.95rem;
+  text-align: center;
+  max-width: 90vw;
+}
+
+#awx-auth-form:not(:empty) > * {
+  background: #fff;
+  border-radius: 14px;
+  overflow: auto;
+  width: min(480px, 94vw);
+  max-height: 84vh;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+#awx-auth-form iframe {
+  display: block;
+  width: 100%;
+  min-height: 480px;
+  border: 0;
+  background: #fff;
+}
+
+/* --- Sidebar --- */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   position: sticky;
   top: 24px;
 }
 
-.order-summary h3 {
+.order-summary,
+.demo-guide {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.order-summary h3,
+.demo-guide h3 {
   margin-top: 0;
 }
 
@@ -213,16 +361,49 @@
   font-size: 0.95rem;
 }
 
-.test-cards summary {
-  cursor: pointer;
-  color: var(--muted);
-  font-size: 0.85rem;
+/* --- Demo guide --- */
+
+.test-card-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.test-cards p {
-  font-size: 0.82rem;
+.test-card-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+.copy-number {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.copy-number:hover {
+  border-color: var(--accent);
+}
+
+.copy-number code {
+  background: none;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.copy-hint {
+  font-size: 0.75rem;
   color: var(--muted);
-  line-height: 1.9;
 }
 
 /* --- Status chips --- */
@@ -292,9 +473,17 @@
   word-break: break-all;
 }
 
-@media (max-width: 760px) {
-  .product-page,
+@media (max-width: 800px) {
   .checkout-grid {
     grid-template-columns: 1fr;
+  }
+
+  .split-product-summary {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sidebar {
+    position: static;
   }
 }

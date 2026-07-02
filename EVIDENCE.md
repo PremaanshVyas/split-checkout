@@ -48,6 +48,25 @@ And the same two charges in the Airwallex dashboard (Payments → Payment activi
 
 ![Airwallex dashboard showing both captures](docs/evidence/dashboard-succeeded.png)
 
+## Transaction-type matrix
+
+Every documented sandbox card behavior, driven through the real UI (browser automation over the actual card-element iframes, one fresh order each). "Held" means the authorization landed and the capture-together gate would proceed; "Declined" means the slot stayed open for retry with the message shown.
+
+| Scenario | Test card | Outcome | Shopper sees |
+|---|---|---|---|
+| Plain success | `4035 5010 0000 0008` | Held ✓ | — |
+| 3DS frictionless | `4012 0003 0000 0005` | Held ✓ | no challenge, brief authentication |
+| 3DS challenge, correct OTP | `4012 0003 0000 0088` | Held ✓ | bank-verification modal, code `1234` |
+| 3DS authentication fails | `4012 0003 0000 0013` | Declined, retryable | "Your bank couldn't verify this payment…" |
+| 3DS challenge fails | `4012 0003 0000 0070` | Declined, retryable | modal, then "Your bank couldn't verify this payment…" |
+| Insufficient funds (code 51) | `5307 8373 6054 4518` @ $80.51 | Declined, retryable | modal, then "This card has insufficient funds…" |
+| Risk-engine decline | `4646 4646 4646 4644` | Declined, retryable | "This payment couldn't be accepted…" |
+| Invalid card number | `1111 1111 1111 1111` | Declined, retryable | "That card number doesn't look right…" |
+
+In every declined case the other card's hold was untouched and nothing was captured.
+
+![3DS bank verification modal](docs/evidence/3ds-modal.png)
+
 ## Sandbox finding worth knowing
 
 Airwallex's insufficient-funds test card (`5307 8373 6054 4518` @ $80.51) runs a **3DS challenge (OTP `1234`) before returning the code-51 decline**. The demo handles this (the challenge renders in the checkout via `authFormContainer`), and the discovery is written up in [DECISIONS.md](DECISIONS.md). Use it in a manual run to see the 3DS + issuer-decline path; the scripted evidence above uses the no-3DS risk-decline card so the run is deterministic.

@@ -1,23 +1,27 @@
 import { Router } from "express";
-import { PRODUCT } from "../catalog.js";
+import { PRODUCTS } from "../catalog.js";
 import { NotFoundError, SplitAmountError, type OrderService } from "../orders/service.js";
 import { AirwallexApiError } from "../airwallex/client.js";
 
 export function ordersRouter(service: OrderService): Router {
   const router = Router();
 
-  router.get("/product", (_req, res) => {
-    res.json(PRODUCT);
+  router.get("/products", (_req, res) => {
+    res.json(PRODUCTS);
   });
 
   router.post("/orders", async (req, res, next) => {
     try {
-      const splits = req.body?.splits;
-      if (!Array.isArray(splits) || !splits.every((n) => typeof n === "number")) {
-        res.status(400).json({ error: "Body must be { splits: number[] }" });
+      const { sku, splits } = req.body ?? {};
+      if (
+        typeof sku !== "string" ||
+        !Array.isArray(splits) ||
+        !splits.every((n: unknown) => typeof n === "number")
+      ) {
+        res.status(400).json({ error: "Body must be { sku: string, splits: number[] }" });
         return;
       }
-      res.status(201).json(await service.createSplitOrder(splits));
+      res.status(201).json(await service.createSplitOrder(sku, splits));
     } catch (err) {
       next(err);
     }

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { AirwallexClient } from "../airwallex/client.js";
 import { AirwallexApiError } from "../airwallex/client.js";
 import type { PaymentIntent } from "../airwallex/types.js";
-import { PRODUCT } from "../catalog.js";
+import { getProduct } from "../catalog.js";
 import { friendlyDeclineMessage } from "./errorMessages.js";
 import type { OrderStore } from "./store.js";
 import type { OrderGroup, PaymentSlot } from "./types.js";
@@ -37,10 +37,14 @@ export class OrderService {
 
   /**
    * One order → N PaymentIntents, one per split amount. The client only
-   * proposes how to split; the total is always the server-side catalog
-   * price, and the parts must sum to it exactly.
+   * proposes a product and how to split it; the total is always the
+   * server-side catalog price, and the parts must sum to it exactly.
    */
-  async createSplitOrder(splits: number[]): Promise<OrderView> {
+  async createSplitOrder(sku: string, splits: number[]): Promise<OrderView> {
+    const product = getProduct(sku);
+    if (!product) {
+      throw new SplitAmountError(`Unknown product: ${sku}`);
+    }
     if (splits.length < 2) {
       throw new SplitAmountError("A split order needs at least two parts.");
     }
@@ -49,26 +53,26 @@ export class OrderService {
     }
     // Work in cents to avoid float drift when validating the sum.
     const sumCents = splits.reduce((acc, amount) => acc + Math.round(amount * 100), 0);
-    if (sumCents !== Math.round(PRODUCT.price * 100)) {
+    if (sumCents !== Math.round(product.price * 100)) {
       throw new SplitAmountError(
-        `Parts must sum to ${PRODUCT.price.toFixed(2)} ${PRODUCT.currency}.`,
+        `Parts must sum to ${product.price.toFixed(2)} ${product.currency}.`,
       );
     }
 
     const merchantOrderRef = `split-${randomUUID().slice(0, 8)}`;
     const group = this.store.createGroup({
       merchantOrderRef,
-      totalAmount: PRODUCT.price,
-      currency: PRODUCT.currency,
+      totalAmount: product.price,
+      currency: product.currency,
     });
 
     const secrets = new Map<string, string>();
     for (const [index, amount] of splits.entries()) {
       const intent = await this.airwallex.createPaymentIntent({
         amount,
-        currency: PRODUCT.currency,
+        currency: product.currency,
         merchantOrderId: `${merchantOrderRef}-card${index + 1}`,
-        metadata: { order_group_id: group.id, slot_index: String(index + 1) },
+        metadata: { order_group_id: group.id, slot_index: String(index + 1), sku },
       });
       const slot = this.store.addSlot({
         orderGroupId: group.id,
