@@ -4,7 +4,7 @@
  *
  * Run: npm run smoke --workspace=server   (requires a filled-in .env)
  */
-import "dotenv/config";
+import "../src/env.js";
 import { randomUUID } from "node:crypto";
 import { loadConfig } from "../src/config.js";
 import { AirwallexClient } from "../src/airwallex/client.js";
