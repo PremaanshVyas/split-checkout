@@ -2,9 +2,15 @@
 
 **Pay for one order with two cards, on Airwallex.**
 
+![Demo: a declined card converts into a split across two cards, captured together](docs/demo.gif)
+
+*Above: the decline-recovery flow. A single-card payment fails, the checkout offers to split the purchase, and both cards are authorized then captured together. Real sandbox PaymentIntents throughout.*
+
 A working demo of multi-card payment orchestration built directly on Airwallex's sandbox API. One order becomes N PaymentIntents, every card is *authorized without being charged*, and money moves only when all of the holds succeed: captured together, settling straight to the merchant's Airwallex account. It ships both deployment modes. **Upfront splitting** lets the shopper choose two cards from the start. **Decline recovery** converts a failed single-card payment into a split instead of a lost sale, which is the mode behind Air Europa's measured €2.4M recovery.
 
 > **Try it now: https://split-checkout-demo.fly.dev** (sandbox only, no real money; test card numbers are on the checkout page). Or run it locally in two minutes ([below](#run-it-yourself)). The decline path is included, so you can watch a card fail safely in about ten seconds.
+>
+> **New here? Start with [PITCH.md](PITCH.md)**: the two-minute story of why this exists, why merchants don't build it themselves, and why it belongs inside Airwallex.
 
 ## Why this exists
 
