@@ -18,7 +18,12 @@ function ensureInit(): Promise<unknown> {
  */
 export async function createCardElement(container: HTMLElement) {
   await ensureInit();
-  const card = await createElement("card", { autoCapture: false });
+  const card = await createElement("card", {
+    autoCapture: false,
+    // Some cards go through a 3DS challenge before authorizing; the SDK
+    // renders that challenge into this container (see CardStep).
+    authFormContainer: "awx-auth-form",
+  });
   card.mount(container);
   return card;
 }

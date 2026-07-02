@@ -6,6 +6,8 @@
 # Local data
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
 *.sqlite
 
 # Dependencies & build output

@@ -91,3 +91,13 @@ Every non-obvious choice in this project, dated, with the alternatives considere
 **Alternatives:** `@airwallex/node-sdk`, Airwallex's official TypeScript-first server SDK with auto token refresh and typed models.
 
 **Why:** The official SDK is currently in beta (`2.x.0-beta.*`). This demo touches exactly five endpoints (login, create, retrieve, capture, cancel), and the whole client fits in ~130 readable lines — which also makes the authorize/capture mechanics visible to a reviewer instead of hidden behind an SDK call. A beta dependency is the wrong trade for five endpoints. The client mirrors the SDK's semantics (cached 30-minute token, refresh before expiry, `request_id` idempotency on every mutating call) so swapping later is mechanical.
+
+---
+
+## 2026-07-02 — Sandbox finding: the insufficient-funds test card runs a 3DS challenge first
+
+**What happened:** End-to-end testing of the failure path with Airwallex's documented insufficient-funds combination (card `5307 8373 6054 4518` at $80.51) did not produce an immediate decline. The confirm went to `REQUIRES_CUSTOMER_ACTION` / `AUTHENTICATION_REDIRECTED`: in the sandbox this card triggers a full 3DS challenge (OTP `1234`) *before* the issuer decline is returned. Our first integration pass never rendered the challenge because `authFormContainer` wasn't passed to `createElement` — the confirm just hung.
+
+**Decision:** (a) Always pass `authFormContainer` so any card that requires 3DS can complete authentication — this matters for real cards too, not just test ones. (b) Use the risk-decline test card (`4646 4646 4646 4644`, declines at any amount, no 3DS) as the primary scripted decline demo, and keep the code-51 card as the manual demo with the OTP hint shown in the UI.
+
+**Why it's recorded:** The spec's rule was that a documented surprise beats a silent workaround. The lesson generalizes: client-side confirm outcomes are not binary success/decline — there is a customer-action middle state the UI must host, which is exactly why the server-side Retrieve is the only source of truth.

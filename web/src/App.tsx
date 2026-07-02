@@ -165,7 +165,7 @@ export default function App() {
                 Declines at any amount: <code>4646 4646 4646 4644</code>
                 <br />
                 Insufficient funds: <code>5307 8373 6054 4518</code> on an $80.51 slot (use the
-                “Decline demo” split)
+                “Decline demo” split; enter <code>1234</code> if a 3DS prompt appears)
                 <br />
                 Expiry: any future date · CVC: any 3 digits
               </p>
