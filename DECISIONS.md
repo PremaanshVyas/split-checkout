@@ -121,3 +121,13 @@ Every non-obvious choice in this project, dated, with the alternatives considere
 **Alternatives:** Inline rendering under the card fields (our first pass), or the SDK's default behavior with no container.
 
 **Why:** User testing found the OTP form clipped and partly invisible inline — a shopper mid-payment saw "Placing hold…" and a fragment of a bank form. A challenge is modal by nature: it blocks the payment, comes from a third party (the issuer), and must be completed or cancelled. The modal makes the full "Purchase Authentication" form visible in one piece with an explanatory caption. Empirically re-verified the full transaction matrix afterwards (see EVIDENCE.md): frictionless 3DS, challenge success, challenge failure, authentication failure, issuer decline behind 3DS, risk decline, and invalid card all surface correct states and human-readable copy.
+
+---
+
+## 2026-07-02 — Explicit hold reversal: cancel button + stale-order sweep
+
+**Decision:** Abandoned orders no longer rely on authorization holds expiring naturally. Two mechanisms reverse them explicitly: a "Cancel order & release holds" action in the checkout, and a server-side sweep that cancels any order still uncaptured 60 minutes after creation (checked every 5 minutes).
+
+**Alternatives:** The original design let unneeded holds expire on their own (~5 days for cards) — documented as acceptable because no money moves either way.
+
+**Why:** Reading Visa's [authorization best-practices](https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf) changed the calculus: merchants are expected to reverse approved authorizations within 24 hours of learning a transaction won't complete, and authorizations never matched to a capture or reversal attract a Misuse of Authorization fee. "Let it expire" is therefore not just lazy UX (the shopper's money stays locked for days) — it's the exact behavior the scheme penalizes, and plausibly a reason risk-averse merchants avoid multi-card flows entirely. A split-payment system that wants to be taken seriously must treat hold reversal as a first-class path. The 60-minute TTL matches the client_secret lifetime: past it, the checkout session cannot proceed anyway. Covered by unit tests against a stubbed Airwallex client.

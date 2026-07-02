@@ -141,12 +141,12 @@ export class OrderService {
   }
 
   /** Abandon the order: cancel every uncaptured intent, mark the group failed. */
-  async abandonOrder(orderGroupId: string): Promise<OrderView> {
+  async abandonOrder(orderGroupId: string, reason = "order abandoned"): Promise<OrderView> {
     const slots = this.store.getSlotsForGroup(orderGroupId);
     for (const slot of slots) {
       if (slot.status === "created" || slot.status === "authorized") {
         try {
-          await this.airwallex.cancelPaymentIntent(slot.airwallex_intent_id, "order abandoned");
+          await this.airwallex.cancelPaymentIntent(slot.airwallex_intent_id, reason);
           this.store.updateSlotStatus(slot.id, "cancelled");
         } catch (err) {
           // A hold that fails to cancel simply expires on its own; record and move on.
@@ -160,6 +160,23 @@ export class OrderService {
     }
     this.store.updateGroupStatus(orderGroupId, "failed");
     return this.view(orderGroupId);
+  }
+
+  /**
+   * Hold-reversal sweep. Visa's authorization best practices require
+   * reversing approved holds within 24 hours once a transaction won't
+   * complete, and fine authorizations that are never captured or
+   * reversed. Any order still uncaptured after the TTL is treated as
+   * walked-away: its holds are cancelled explicitly rather than left
+   * to expire. Returns the number of groups reversed.
+   */
+  async expireStaleOrders(maxAgeMs: number): Promise<number> {
+    const cutoffIso = new Date(Date.now() - maxAgeMs).toISOString();
+    const stale = this.store.getStaleUncapturedGroups(cutoffIso);
+    for (const group of stale) {
+      await this.abandonOrder(group.id, "order expired - releasing holds");
+    }
+    return stale.length;
   }
 
   getOrder(orderGroupId: string): OrderView {

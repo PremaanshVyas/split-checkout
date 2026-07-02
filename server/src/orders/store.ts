@@ -68,4 +68,15 @@ export class OrderStore {
   updateGroupStatus(id: string, status: OrderGroupStatus): void {
     this.db.prepare(`UPDATE order_groups SET status = ? WHERE id = ?`).run(status, id);
   }
+
+  /** Uncaptured groups created before the cutoff — candidates for hold reversal. */
+  getStaleUncapturedGroups(cutoffIso: string): OrderGroup[] {
+    return this.db
+      .prepare(
+        `SELECT * FROM order_groups
+         WHERE status IN ('pending','partially_authorized','authorized')
+           AND created_at < ?`,
+      )
+      .all(cutoffIso) as OrderGroup[];
+  }
 }

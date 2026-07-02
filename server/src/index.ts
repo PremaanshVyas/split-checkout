@@ -33,6 +33,22 @@ app.get(/^\/(?!api\/).*/, (_req, res) => {
   });
 });
 
+// Hold-reversal sweep: any order still uncaptured after ORDER_TTL has been
+// walked away from — cancel its holds instead of letting them dangle
+// (Visa best practice: reverse within 24h; unmatched auths incur fees).
+// TTL matches the 60-minute client_secret lifetime: past it, the checkout
+// session can't continue anyway.
+const ORDER_TTL_MS = 60 * 60 * 1000;
+const SWEEP_INTERVAL_MS = 5 * 60 * 1000;
+setInterval(() => {
+  service
+    .expireStaleOrders(ORDER_TTL_MS)
+    .then((n) => {
+      if (n > 0) console.log(`hold sweep: reversed ${n} stale order group(s)`);
+    })
+    .catch((err) => console.error("hold sweep failed:", err));
+}, SWEEP_INTERVAL_MS).unref();
+
 app.listen(config.port, () => {
   console.log(`split-checkout server listening on http://localhost:${config.port}`);
 });

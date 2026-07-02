@@ -379,6 +379,21 @@
   font-size: 0.9rem;
 }
 
+.cancel-order {
+  width: 100%;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.cancel-order:hover:not(:disabled) {
+  border-color: var(--declined);
+  color: var(--declined);
+}
+
 .copy-number {
   display: flex;
   align-items: center;

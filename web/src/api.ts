@@ -30,4 +30,7 @@ export const api = {
     request<{ client_secret: string }>(`/api/orders/${orderId}/slots/${slotId}/refresh-secret`, {
       method: "POST",
     }),
+
+  abandonOrder: (orderId: string) =>
+    request<OrderView>(`/api/orders/${orderId}/abandon`, { method: "POST" }),
 };

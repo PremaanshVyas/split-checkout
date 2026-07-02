@@ -56,6 +56,16 @@ The invariants that make it safe:
 - **Failure is free to unwind.** A declined confirm leaves that PaymentIntent open, so the shopper retries that card slot in place — the other card's hold is untouched. If the shopper walks away, the holds simply expire (~5 days). No refunds, no reversals, because no money ever moved.
 - **The server never trusts the client.** After every confirm, the backend retrieves the intent from Airwallex and acts on that status — Airwallex's docs themselves warn that a completed client flow doesn't imply a successful payment.
 
+## Why doesn't every store have this already?
+
+Any supermarket register can split a bill across two cards, yet online it's near-extinct — a spot-check of ten major US retail sites found exactly [one](https://www.creditcards.com/education/split-payment-transaction-online-two-cards/) that accepts two credit cards on one order. The reasons are instructive:
+
+- **It's not a card-network restriction.** Visa's [Partial Authorization Service](https://usa.visa.com/content/dam/VCOM/global/support-legal/documents/visa-partial-authorization-service.pdf) has explicitly supported split tender in eCommerce since 2005 — issuers and acquirers *must* support it, but implementing it is **optional for online merchants**, so almost none do.
+- **Checkout APIs are one-instrument-per-transaction.** A payment intent takes exactly one card. Splitting an order means the merchant builds the multi-intent orchestration state machine themselves — that's this repo — and every downstream system (refunds, chargebacks, taxes, promotions, reconciliation) assumes one order = one payment.
+- **Doing it sloppily costs real money.** Visa [fines authorizations](https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf) that are never captured or reversed, and expects sibling holds to be reversed within 24 hours when an order won't complete. This demo complies: nothing dangles — failed or abandoned orders have their holds cancelled explicitly (a cancel button plus a server-side stale-hold sweep).
+- **Gift cards make the gap personal.** Closed-loop store cards (an Amazon balance) combine fine — that's the merchant's internal ledger. Open-loop prepaid Visa/Mastercard gift cards are real card transactions, so combining them *is* multi-card payment — which is why [43% of US adults](https://www.bankrate.com/credit-cards/news/gift-cards-survey/) sit on unused gift cards averaging $244 each.
+- **Filling the gap measurably pays.** Air Europa added split payments to checkout in 2024 and attributes [€3.8M in incremental revenue](https://thefintechtimes.com/air-europa-selects-hands-in-to-add-split-payments-to-checkout-boosting-revenue-by-e3-8million/) to it, with the two-card decline-recovery flow converting at 95.1%.
+
 ### Why no payments license is needed
 
 This system never holds, pools, or forwards shopper funds. Each capture settles directly from the shopper's card to the merchant's Airwallex account through Airwallex's existing rails. Orchestration-only means none of the stored-value / purchased-payment-facility regimes (AFSL/ASIC/AUSTRAC in Australia) are triggered. The moment an implementation would route money through anything the operator controls, it's out of bounds — by design, this one can't.
@@ -105,6 +115,7 @@ This is a demo of the core mechanism, not a finished product. Production would a
 - **Webhook-driven status** — the demo verifies by retrieving intents server-side after each confirm (deterministic for local runs); production would drive the state machine from signed webhooks (`payment_intent.requires_capture`, `payment_intent.succeeded`) with polling as reconciliation.
 - **Capture-retry hardening** — a capture failure after partial success currently leaves the group retryable via the same idempotent gate; production wants an async worker with alerting.
 - **N > 2 cards** — the data model and capture gate are already N-ary; only the UI is fixed at two.
+- **True partial authorization** — Visa's partial-auth flow lets a low-balance prepaid card approve *part* of the requested amount, with the remainder rolling to the next card automatically (no guessing the gift card's balance). It needs acquirer-level support not exposed through PaymentIntents today; it's the natural next primitive for this feature.
 
 ## Disclaimer
 

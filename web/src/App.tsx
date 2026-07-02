@@ -136,6 +136,16 @@ export default function App() {
                   ← Continue shopping
                 </button>
               </>
+            ) : order.status === "failed" ? (
+              <section className="card-step">
+                <h2>Order cancelled</h2>
+                <p className="muted">
+                  All holds on your cards have been released — nothing was charged.
+                </p>
+                <button className="primary" onClick={backToShop}>
+                  Back to store
+                </button>
+              </section>
             ) : activeSlot ? (
               <CardStep
                 key={activeSlot.id}
@@ -172,11 +182,29 @@ export default function App() {
                   </li>
                 ))}
               </ol>
-              {order.status !== "captured" && (
-                <p className="muted small">
-                  A hold is not a charge. If any card fails, nothing is captured and the holds
-                  simply expire.
-                </p>
+              {order.status !== "captured" && order.status !== "failed" && (
+                <>
+                  <p className="muted small">
+                    A hold is not a charge. If any card fails, nothing is captured and the holds
+                    simply expire.
+                  </p>
+                  <button
+                    className="cancel-order"
+                    disabled={busy}
+                    onClick={async () => {
+                      setBusy(true);
+                      try {
+                        setOrder(await api.abandonOrder(order.id));
+                      } catch (err) {
+                        setFatalError((err as Error).message);
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    Cancel order &amp; release holds
+                  </button>
+                </>
               )}
             </div>
             <DemoGuide />
