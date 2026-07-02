@@ -1,5 +1,7 @@
 # Split Checkout
 
+[![CI](https://github.com/PremaanshVyas/split-checkout/actions/workflows/ci.yml/badge.svg)](https://github.com/PremaanshVyas/split-checkout/actions/workflows/ci.yml)
+
 **Pay for one order with two cards, on Airwallex.**
 
 ![Demo: a declined card converts into a split across two cards, captured together](docs/demo.gif)
@@ -94,7 +96,7 @@ web/      Vite + React checkout: store, split editor, sequential card
 You need Node 20+ and a free [Airwallex sandbox account](https://www.airwallex.com/docs/developer-tools/sandbox-environment) (no KYC, instant).
 
 ```bash
-git clone <this repo> && cd split-checkout
+git clone https://github.com/PremaanshVyas/split-checkout.git && cd split-checkout
 cp .env.example .env
 # fill in AIRWALLEX_CLIENT_ID and AIRWALLEX_API_KEY
 # (demo.airwallex.com > Settings > Developer > API keys > Generate)
