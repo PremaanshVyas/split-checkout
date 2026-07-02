@@ -1,6 +1,6 @@
 /**
  * Known PaymentIntent statuses. Airwallex documents this list as
- * non-exhaustive, so code must tolerate values outside the union —
+ * non-exhaustive, so code must tolerate values outside the union;
  * hence the `(string & {})` escape hatch.
  */
 export type PaymentIntentStatus =

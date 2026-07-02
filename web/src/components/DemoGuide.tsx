@@ -15,7 +15,7 @@ const TEST_CARDS: TestCard[] = [
   {
     label: "Card that always declines",
     number: "4646 4646 4646 4644",
-    note: "Use it with “Pay with one card” to see decline recovery — the checkout offers to split the purchase instead of losing it. In a split, the other card is never charged and you can retry.",
+    note: "Use it with “Pay with one card” to see decline recovery: the checkout offers to split the purchase instead of losing it. In a split, the other card is never charged and you can retry.",
   },
   {
     label: "Bank verification (3D Secure)",
@@ -25,7 +25,7 @@ const TEST_CARDS: TestCard[] = [
   {
     label: "Insufficient funds",
     number: "5307 8373 6054 4518",
-    note: "Choose the “Insufficient funds demo” split first — this card is declined for insufficient funds on the $80.51 amount. Enter 1234 if a verification window appears.",
+    note: "Choose the “Insufficient funds demo” split first. This card is declined for insufficient funds on the $80.51 amount. Enter 1234 if a verification window appears.",
   },
 ];
 
@@ -57,7 +57,7 @@ export function DemoGuide() {
     <div className="demo-guide">
       <h3>Demo guide</h3>
       <p className="muted small">
-        This store runs on Airwallex's test environment — no real money ever moves. Pay with the
+        This store runs on Airwallex's test environment, so no real money ever moves. Pay with the
         test cards below. For every card, use <strong>any future expiry</strong> (e.g. 12/30) and{" "}
         <strong>any 3-digit CVC</strong> (e.g. 123).
       </p>

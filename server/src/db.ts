@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 
 /**
  * SQLite for the demo (see DECISIONS.md). The schema is written as it
- * would be in Postgres — swapping is a driver change, not a redesign.
+ * would be in Postgres; swapping is a driver change, not a redesign.
  */
 export function openDatabase(path = process.env.DB_PATH ?? "split-checkout.db"): Database.Database {
   const db = new Database(path);

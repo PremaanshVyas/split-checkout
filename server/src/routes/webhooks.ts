@@ -26,7 +26,7 @@ export function verifyWebhookSignature(
 }
 
 /**
- * Webhook listener (secondary status channel — see DECISIONS.md).
+ * Webhook listener (secondary status channel; see DECISIONS.md).
  * payment_intent.* events feed the exact same slot/group transitions
  * as the polling path, so whichever arrives first wins and the other
  * is an idempotent no-op.
@@ -66,7 +66,7 @@ export function webhooksRouter(service: OrderService, secret: string | undefined
       return;
     }
 
-    // Acknowledge immediately — Airwallex retries non-200 deliveries.
+    // Acknowledge immediately; Airwallex retries non-200 deliveries.
     res.json({ received: true });
 
     const intent = event.data?.object;

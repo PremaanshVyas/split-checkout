@@ -38,7 +38,7 @@ test("all holds placed → authorized", () => {
 });
 
 test("declined slot stays created; group stays partially_authorized on the other hold", () => {
-  // A decline does not move the slot to failed — the intent stays open for retry.
+  // A decline does not move the slot to failed; the intent stays open for retry.
   assert.equal(
     deriveGroupStatus([slot("authorized"), slot("created")], "partially_authorized"),
     "partially_authorized",

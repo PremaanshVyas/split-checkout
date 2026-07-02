@@ -16,7 +16,7 @@ const orderRef = `smoke-${randomUUID().slice(0, 8)}`;
 console.log(`Creating PaymentIntent (merchant_order_id=${orderRef})...`);
 
 const created = await client.createPaymentIntent({
-  amount: 10.0, // NOT $8x.xx — those amounts trigger sandbox error responses
+  amount: 10.0, // NOT $8x.xx; those amounts trigger sandbox error responses
   currency: "AUD",
   merchantOrderId: orderRef,
 });

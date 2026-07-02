@@ -35,12 +35,12 @@ const webDist =
 app.use(express.static(webDist));
 app.get(/^\/(?!api\/).*/, (_req, res) => {
   res.sendFile(path.join(webDist, "index.html"), (err) => {
-    if (err) res.status(404).send("Not found — run `npm run build` to build the frontend.");
+    if (err) res.status(404).send("Not found. Run `npm run build` to build the frontend.");
   });
 });
 
 // Hold-reversal sweep: any order still uncaptured after ORDER_TTL has been
-// walked away from — cancel its holds instead of letting them dangle
+// walked away from, so cancel its holds instead of letting them dangle
 // (Visa best practice: reverse within 24h; unmatched auths incur fees).
 // TTL matches the 60-minute client_secret lifetime: past it, the checkout
 // session can't continue anyway.

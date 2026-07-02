@@ -75,7 +75,7 @@ export class OrderStore {
     this.db.prepare(`UPDATE order_groups SET status = ? WHERE id = ?`).run(status, id);
   }
 
-  /** Uncaptured groups created before the cutoff — candidates for hold reversal. */
+  /** Uncaptured groups created before the cutoff, candidates for hold reversal. */
   getStaleUncapturedGroups(cutoffIso: string): OrderGroup[] {
     return this.db
       .prepare(

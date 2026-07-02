@@ -2,7 +2,7 @@
   "name": "split-checkout",
   "private": true,
   "version": "0.1.0",
-  "description": "Pay for one order with two cards — multi-card payment orchestration on Airwallex's sandbox API",
+  "description": "Pay for one order with two cards: multi-card payment orchestration on Airwallex's sandbox API",
   "workspaces": [
     "server",
     "web"

@@ -29,7 +29,7 @@ interface CachedToken {
 /**
  * Minimal typed client for the Airwallex payment-acceptance API.
  *
- * Uses raw REST (not the beta @airwallex/node-sdk) — see DECISIONS.md.
+ * Uses raw REST rather than the beta @airwallex/node-sdk; see DECISIONS.md.
  * The bearer token is valid for 30 minutes; we cache it and refresh
  * shortly before expiry. Credentials never leave this module.
  */
@@ -110,7 +110,7 @@ async function toApiError(res: Response): Promise<AirwallexApiError> {
   try {
     parsed = (await res.json()) as AirwallexErrorBody;
   } catch {
-    // Non-JSON error body (e.g. gateway HTML) — fall through to defaults.
+    // Non-JSON error body (e.g. gateway HTML); fall through to defaults.
   }
   return new AirwallexApiError(
     res.status,

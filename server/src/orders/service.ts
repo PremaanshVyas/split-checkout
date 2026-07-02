@@ -37,8 +37,8 @@ export class OrderService {
 
   /**
    * One order → N PaymentIntents, one per split amount. A single-card
-   * purchase is simply a one-slot order — same state machine, same
-   * capture gate — which is what makes decline recovery cheap: a failed
+   * purchase is simply a one-slot order sharing the same state machine and
+   * capture gate, which is what makes decline recovery cheap: a failed
    * single-card order converts to a two-slot one. The client only
    * proposes a product and how to split it; the total is always the
    * server-side catalog price, and the parts must sum to it exactly.
@@ -103,7 +103,7 @@ export class OrderService {
   }
 
   /**
-   * The capture-together gate — the one genuinely subtle piece of this
+   * The capture-together gate: the one genuinely subtle piece of this
    * system. Nothing is captured until EVERY slot in the group holds an
    * authorization (REQUIRES_CAPTURE). Only then do we capture each
    * intent, sequentially. A capture failure leaves the group in
@@ -135,7 +135,7 @@ export class OrderService {
 
   /**
    * Apply an intent status delivered by webhook. Same transitions as the
-   * polling path — whichever channel reports first wins, the other is an
+   * polling path; whichever channel reports first wins and the other is an
    * idempotent no-op. Returns false for intents we don't track.
    */
   async processIntentUpdate(intent: PaymentIntent): Promise<boolean> {
@@ -202,7 +202,7 @@ export class OrderService {
 
   private applyIntentStatus(slot: PaymentSlot, intent: PaymentIntent, clientErrorCode?: string): void {
     // Terminal slot states never regress. Webhooks and polling race, and
-    // deliveries can arrive late or duplicated — a stale REQUIRES_CAPTURE
+    // deliveries can arrive late or duplicated; a stale REQUIRES_CAPTURE
     // must not un-capture a slot (or trigger a second capture attempt).
     if (slot.status === "captured" || slot.status === "cancelled") return;
     switch (intent.status) {

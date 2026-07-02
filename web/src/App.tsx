@@ -149,14 +149,14 @@ export default function App() {
           </div>
           {recoveryHint && (
             <p className="recovery-hint" role="status">
-              Your card was declined, but the order isn't lost — try splitting it across two
+              Your card was declined, but the order isn't lost. Try splitting it across two
               cards below. Nothing has been charged.
             </p>
           )}
           {!recoveryHint && (
             <div className="pay-single">
               <button className="primary" disabled={busy} onClick={() => startOrder([product.price])}>
-                {busy ? "Setting up…" : `Pay with one card — ${fmt(product.price, product.currency)}`}
+                {busy ? "Setting up…" : `Pay with one card (${fmt(product.price, product.currency)})`}
               </button>
               <p className="muted small pay-divider">or split it across two cards</p>
             </div>
@@ -180,7 +180,7 @@ export default function App() {
               <section className="card-step">
                 <h2>Order cancelled</h2>
                 <p className="muted">
-                  All holds on your cards have been released — nothing was charged.
+                  All holds on your cards have been released. Nothing was charged.
                 </p>
                 <button className="primary" onClick={backToShop}>
                   Back to store
@@ -199,7 +199,7 @@ export default function App() {
                 />
                 {order.slots.length === 1 && activeSlot.last_error_code && (
                   <aside className="recovery-offer">
-                    <strong>Don't lose the order — split it across two cards.</strong>
+                    <strong>Don't lose the order. Split it across two cards.</strong>
                     <p className="muted small">
                       Pay part on this card and the rest on another. Nothing is charged unless
                       both cards authorize.
@@ -213,7 +213,7 @@ export default function App() {
             ) : (
               <section className="card-step">
                 <h2>Completing your payment…</h2>
-                <p className="muted">Both holds are in place — capturing the charges together.</p>
+                <p className="muted">Both holds are in place. Capturing the charges together.</p>
               </section>
             )}
             {fatalError && <p className="error">{fatalError}</p>}
@@ -268,7 +268,7 @@ export default function App() {
       )}
 
       <footer className="footer muted small">
-        Independent demo built on Airwallex's public sandbox API — not an Airwallex product. No
+        Independent demo built on Airwallex's public sandbox API, not an Airwallex product. No
         real cards, no real money.
       </footer>
     </main>

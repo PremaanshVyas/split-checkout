@@ -32,7 +32,7 @@ export interface PaymentSlot {
  * pending → partially_authorized → authorized → captured, with
  * `failed` reserved for explicit abandonment/cancellation.
  *
- * A declined confirm does NOT move a slot to `failed` — Airwallex
+ * A declined confirm does NOT move a slot to `failed`; Airwallex
  * leaves the PaymentIntent open, so the slot stays `created` (with
  * last_error_code recorded) and the shopper retries in place.
  */

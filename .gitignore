@@ -1,4 +1,4 @@
-# Credentials — never committed, even sandbox ones
+# Credentials are never committed, even sandbox ones
 .env
 .env.*
 !.env.example

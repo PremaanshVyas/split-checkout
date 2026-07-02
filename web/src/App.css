@@ -292,7 +292,7 @@
 }
 
 #awx-auth-form:not(:empty)::before {
-  content: "Your bank is verifying this payment — complete the check below.";
+  content: "Your bank is verifying this payment. Complete the check below.";
   position: fixed;
   top: 24px;
   left: 50%;

@@ -37,7 +37,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 /**
  * One card entry step. The Airwallex card element is mounted once per
  * payment flow, so every attempt (first try or post-decline retry)
- * creates a fresh element — `attempt` in the effect deps drives that.
+ * creates a fresh element; `attempt` in the effect deps drives that.
  */
 export function CardStep({
   slot,
@@ -84,7 +84,7 @@ export function CardStep({
     let clientErrorCode: string | undefined;
     try {
       // An abandoned 3DS challenge would otherwise leave confirm() pending
-      // forever — give up after a generous window and let the shopper retry.
+      // forever. Give up after a generous window and let the shopper retry.
       await withTimeout(
         confirmHold(cardRef.current, { intentId: slot.intent_id, clientSecret }),
         90_000,
@@ -92,7 +92,7 @@ export function CardStep({
     } catch (err) {
       clientErrorCode = (err as { code?: string })?.code;
     }
-    // Success or decline, the server re-checks the intent — the client
+    // Success or decline, the server re-checks the intent; the client
     // callback is never trusted as the source of truth.
     await onConfirmSettled(slot.id, clientErrorCode);
     setBusy(false);
@@ -101,10 +101,10 @@ export function CardStep({
 
   return (
     <section className="card-step">
-      <h2>{single ? `Pay ${fmt(slot.amount, currency)}` : `Card ${stepNumber} — ${fmt(slot.amount, currency)}`}</h2>
+      <h2>{single ? `Pay ${fmt(slot.amount, currency)}` : `Card ${stepNumber} · ${fmt(slot.amount, currency)}`}</h2>
       {!single && (
         <p className="muted">
-          This places a hold only. <strong>You will not be charged yet</strong> — no money moves
+          This places a hold only. <strong>You will not be charged yet</strong>. No money moves
           until every card in this order is authorized.
         </p>
       )}

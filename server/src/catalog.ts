@@ -1,5 +1,5 @@
 /**
- * Store catalog. Prices live server-side only — the client sends a product
+ * Store catalog. Prices live server-side only; the client sends a product
  * sku and a proposed split, never a price. High-ticket items make a
  * two-card split intuitive; the kettle is there to show the flow also
  * works for smaller carts.
@@ -11,7 +11,7 @@ export interface Product {
   description: string;
   price: number;
   currency: string;
-  /** Emoji used as the product visual — keeps the demo self-contained. */
+  /** Emoji used as the product visual, which keeps the demo self-contained. */
   art: string;
 }
 

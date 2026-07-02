@@ -72,7 +72,7 @@ export function SplitEditor({ product, busy, onConfirm }: Props) {
         <button type="button" onClick={() => setClamped(Math.round(product.price * 75) / 100)}>75 / 25</button>
         <button
           type="button"
-          title="Sets card 2 to $80.51 — a sandbox amount that triggers an insufficient-funds decline with the matching test card"
+          title="Sets card 2 to $80.51, a sandbox amount that triggers an insufficient-funds decline with the matching test card"
           onClick={() => setClamped(Math.round((product.price - 80.51) * 100) / 100)}
         >
           Insufficient funds demo

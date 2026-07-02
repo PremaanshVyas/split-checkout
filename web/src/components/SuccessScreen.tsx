@@ -19,7 +19,7 @@ export function SuccessScreen({ order }: { order: OrderView }) {
             <span className="muted">Card {i + 1}</span>
             <strong>{fmt(slot.amount, order.currency)}</strong>
             <StatusChip status={slot.status} />
-            <code className="intent-id" title="Real PaymentIntent ID — verifiable in the Airwallex dashboard">
+            <code className="intent-id" title="Real PaymentIntent ID, verifiable in the Airwallex dashboard">
               {slot.intent_id}
             </code>
           </div>
@@ -35,7 +35,7 @@ export function SuccessScreen({ order }: { order: OrderView }) {
       </div>
 
       <p className="muted small">
-        These are real sandbox PaymentIntent IDs — look them up in the Airwallex dashboard to see
+        These are real sandbox PaymentIntent IDs. Look them up in the Airwallex dashboard to see
         both authorizations and captures.
       </p>
     </section>
