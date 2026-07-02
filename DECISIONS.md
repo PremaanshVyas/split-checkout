@@ -81,3 +81,13 @@ Every non-obvious choice in this project, dated, with the alternatives considere
 **Alternatives:** Two repos; or a single package mixing server and client source.
 
 **Why:** One `git clone && npm install && npm run dev` for reviewers, one deploy target for the hosted demo, but still a hard compile-time boundary between browser code (which may only ever see per-intent `client_secret`s) and server code (which holds the API key). That boundary mirrors the security rule, so the layout enforces it.
+
+---
+
+## 2026-07-02 — Raw REST client instead of the official Node SDK
+
+**Decision:** The server talks to Airwallex via a small hand-written typed client (`server/src/airwallex/client.ts`) over `fetch`, not `@airwallex/node-sdk`.
+
+**Alternatives:** `@airwallex/node-sdk`, Airwallex's official TypeScript-first server SDK with auto token refresh and typed models.
+
+**Why:** The official SDK is currently in beta (`2.x.0-beta.*`). This demo touches exactly five endpoints (login, create, retrieve, capture, cancel), and the whole client fits in ~130 readable lines — which also makes the authorize/capture mechanics visible to a reviewer instead of hidden behind an SDK call. A beta dependency is the wrong trade for five endpoints. The client mirrors the SDK's semantics (cached 30-minute token, refresh before expiry, `request_id` idempotency on every mutating call) so swapping later is mechanical.
