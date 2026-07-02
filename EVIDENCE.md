@@ -48,6 +48,10 @@ The same two charges in the Airwallex dashboard (Payments, then Payment activity
 
 ![Airwallex dashboard showing both captures](docs/evidence/dashboard-succeeded.png)
 
+A recorded walk through the dashboard tells the whole story in one place: order `split-77f3e1ed` as two Succeeded $242.50 charges, order `split-98c93008` as two $600 charges both marked Refunded, and the payment detail for one refunded leg (auth code "00 Approved", $600.00 refunded):
+
+![Airwallex dashboard walkthrough: split captures and pro-rata refunds](docs/evidence/dashboard.gif)
+
 ## Decline recovery: a failed single-card payment converts to a split
 
 The rescue mode, and the deployment with the strongest commercial evidence (Air Europa's equivalent flow converts at 95.1%). A standard one-card payment is attempted with the always-declines card; instead of a dead end, the checkout offers to split:
