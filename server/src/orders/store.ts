@@ -33,6 +33,12 @@ export class OrderStore {
       | undefined;
   }
 
+  getSlotByIntentId(airwallexIntentId: string): PaymentSlot | undefined {
+    return this.db
+      .prepare(`SELECT * FROM payment_slots WHERE airwallex_intent_id = ?`)
+      .get(airwallexIntentId) as PaymentSlot | undefined;
+  }
+
   getSlot(id: string): PaymentSlot | undefined {
     return this.db.prepare(`SELECT * FROM payment_slots WHERE id = ?`).get(id) as
       | PaymentSlot

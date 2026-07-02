@@ -4,6 +4,7 @@ export interface Config {
   airwallexClientId: string;
   airwallexApiKey: string;
   airwallexBaseUrl: string;
+  airwallexWebhookSecret: string | undefined;
   port: number;
 }
 
@@ -20,6 +21,7 @@ export function loadConfig(): Config {
     airwallexClientId: process.env.AIRWALLEX_CLIENT_ID!,
     airwallexApiKey: process.env.AIRWALLEX_API_KEY!,
     airwallexBaseUrl: process.env.AIRWALLEX_BASE_URL ?? "https://api-demo.airwallex.com",
+    airwallexWebhookSecret: process.env.AIRWALLEX_WEBHOOK_SECRET || undefined,
     port: Number(process.env.PORT ?? 3001),
   };
 }

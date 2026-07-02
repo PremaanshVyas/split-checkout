@@ -8,6 +8,7 @@ import { AirwallexClient } from "./airwallex/client.js";
 import { OrderStore } from "./orders/store.js";
 import { OrderService } from "./orders/service.js";
 import { ordersRouter } from "./routes/orders.js";
+import { webhooksRouter } from "./routes/webhooks.js";
 
 const config = loadConfig();
 const db = openDatabase();
@@ -15,6 +16,11 @@ const airwallex = new AirwallexClient(config);
 const service = new OrderService(new OrderStore(db), airwallex);
 
 const app = express();
+
+// Webhooks mount before the JSON parser: signature verification runs on
+// the raw request body.
+app.use("/api", webhooksRouter(service, config.airwallexWebhookSecret));
+
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => {

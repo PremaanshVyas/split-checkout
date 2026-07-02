@@ -141,3 +141,13 @@ Every non-obvious choice in this project, dated, with the alternatives considere
 **Alternatives:** (a) Upfront-only splitting (the original design) — but shoppers who don't plan to split never see the feature, and the strongest commercial evidence is for rescue: Air Europa's two-card decline-recovery flow converts at 95.1% and drove €2.4M of its €3.8M split-payments revenue. (b) Retrying the split on the same PaymentIntent — rejected because intent amounts are fixed at creation; a split needs fresh intents per part, so cancel-and-recreate is the honest mechanics.
 
 **Why:** Insufficient funds is the single largest cause of card declines (≈44% per Ethoca). A declined shopper is a person mid-purchase with money on other cards — the highest-intent moment a conversion feature can target. Modeling single-card purchases as one-slot groups meant recovery cost ~30 lines: relax the two-part minimum, add the offer panel, and reuse abandon + create.
+
+---
+
+## 2026-07-02 — Webhooks as the second status channel (M7)
+
+**Decision:** `POST /api/webhooks/airwallex` verifies each delivery (HMAC-SHA256 over `x-timestamp + raw_body`, constant-time compare, ±5-minute timestamp window, raw body parsed only after verification) and feeds `payment_intent.*` events into the **same** slot/group transitions as the polling path. Polling remains the primary channel for the demo.
+
+**Alternatives:** Webhook-first with polling as reconciliation (the production pattern), or leaving webhooks unimplemented as originally scoped.
+
+**Why:** Polling-first stays because a reviewer running `npm run dev` locally has no public URL — the demo must be deterministic without one. But the two channels racing is exactly where state machines go wrong, so the interesting work was making the transitions channel-agnostic and safe under duplication and reordering. Writing the test for that surfaced a real bug before the code ever ran: a late or duplicated `requires_capture` delivery would have regressed an already-captured slot and attempted a second capture. Slot states are now monotonic — terminal states (`captured`, `cancelled`) never regress. Whichever channel reports first wins; the other becomes a no-op.

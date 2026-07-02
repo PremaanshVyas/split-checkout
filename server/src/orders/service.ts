@@ -133,6 +133,20 @@ export class OrderService {
     this.recomputeGroupStatus(orderGroupId);
   }
 
+  /**
+   * Apply an intent status delivered by webhook. Same transitions as the
+   * polling path — whichever channel reports first wins, the other is an
+   * idempotent no-op. Returns false for intents we don't track.
+   */
+  async processIntentUpdate(intent: PaymentIntent): Promise<boolean> {
+    const slot = this.store.getSlotByIntentId(intent.id);
+    if (!slot) return false;
+    this.applyIntentStatus(slot, intent);
+    this.recomputeGroupStatus(slot.order_group_id);
+    await this.captureIfAllHeld(slot.order_group_id);
+    return true;
+  }
+
   /** Client secrets expire after 60 minutes; re-retrieving issues a fresh one. */
   async refreshSlotSecret(orderGroupId: string, slotId: string): Promise<{ client_secret: string }> {
     const slot = this.requireSlot(orderGroupId, slotId);
@@ -187,6 +201,10 @@ export class OrderService {
   }
 
   private applyIntentStatus(slot: PaymentSlot, intent: PaymentIntent, clientErrorCode?: string): void {
+    // Terminal slot states never regress. Webhooks and polling race, and
+    // deliveries can arrive late or duplicated — a stale REQUIRES_CAPTURE
+    // must not un-capture a slot (or trigger a second capture attempt).
+    if (slot.status === "captured" || slot.status === "cancelled") return;
     switch (intent.status) {
       case "REQUIRES_CAPTURE":
         this.store.updateSlotStatus(slot.id, "authorized", null);
