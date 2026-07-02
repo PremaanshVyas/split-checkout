@@ -18,6 +18,7 @@ export interface SlotView {
   client_secret?: string;
   last_error_code: string | null;
   error_message: string | null;
+  refunded_amount: number;
 }
 
 export interface OrderView {
@@ -26,5 +27,6 @@ export interface OrderView {
   total_amount: number;
   currency: string;
   status: "pending" | "partially_authorized" | "authorized" | "captured" | "failed";
+  refunded_amount: number;
   slots: SlotView[];
 }

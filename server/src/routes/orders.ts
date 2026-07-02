@@ -1,6 +1,11 @@
 import { Router } from "express";
 import { PRODUCTS } from "../catalog.js";
-import { NotFoundError, SplitAmountError, type OrderService } from "../orders/service.js";
+import {
+  NotFoundError,
+  RefundError,
+  SplitAmountError,
+  type OrderService,
+} from "../orders/service.js";
 import { AirwallexApiError } from "../airwallex/client.js";
 
 export function ordersRouter(service: OrderService): Router {
@@ -53,6 +58,19 @@ export function ordersRouter(service: OrderService): Router {
     }
   });
 
+  router.post("/orders/:orderId/refund", async (req, res, next) => {
+    try {
+      const amount = req.body?.amount;
+      if (amount !== undefined && typeof amount !== "number") {
+        res.status(400).json({ error: "amount must be a number when provided" });
+        return;
+      }
+      res.json(await service.refundOrder(req.params.orderId, amount));
+    } catch (err) {
+      next(err);
+    }
+  });
+
   router.post("/orders/:orderId/abandon", async (req, res, next) => {
     try {
       res.json(await service.abandonOrder(req.params.orderId));
@@ -64,7 +82,7 @@ export function ordersRouter(service: OrderService): Router {
   router.use(
     (err: unknown, _req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => {
       if (res.headersSent) return next(err);
-      if (err instanceof SplitAmountError) {
+      if (err instanceof SplitAmountError || err instanceof RefundError) {
         return res.status(400).json({ error: err.message });
       }
       if (err instanceof NotFoundError) {

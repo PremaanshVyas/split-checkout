@@ -33,4 +33,11 @@ export const api = {
 
   abandonOrder: (orderId: string) =>
     request<OrderView>(`/api/orders/${orderId}/abandon`, { method: "POST" }),
+
+  refundOrder: (orderId: string) =>
+    request<OrderView>(`/api/orders/${orderId}/refund`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    }),
 };

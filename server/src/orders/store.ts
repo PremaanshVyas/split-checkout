@@ -46,8 +46,11 @@ export class OrderStore {
   }
 
   getSlotsForGroup(orderGroupId: string): PaymentSlot[] {
+    // rowid preserves insertion order; created_at has only millisecond
+    // resolution, so same-instant inserts would otherwise tie and sort
+    // by random UUID, shuffling "Card 1" and "Card 2".
     return this.db
-      .prepare(`SELECT * FROM payment_slots WHERE order_group_id = ? ORDER BY created_at, id`)
+      .prepare(`SELECT * FROM payment_slots WHERE order_group_id = ? ORDER BY rowid`)
       .all(orderGroupId) as PaymentSlot[];
   }
 
@@ -73,6 +76,33 @@ export class OrderStore {
 
   updateGroupStatus(id: string, status: OrderGroupStatus): void {
     this.db.prepare(`UPDATE order_groups SET status = ? WHERE id = ?`).run(status, id);
+  }
+
+  addRefund(params: {
+    slotId: string;
+    airwallexRefundId: string;
+    amount: number;
+    status: string;
+  }): void {
+    this.db
+      .prepare(
+        `INSERT INTO refunds (id, slot_id, airwallex_refund_id, amount, status)
+         VALUES (?, ?, ?, ?, ?)`,
+      )
+      .run(randomUUID(), params.slotId, params.airwallexRefundId, params.amount, params.status);
+  }
+
+  /** Total refunded so far per slot id, for one order group. */
+  refundedBySlot(orderGroupId: string): Map<string, number> {
+    const rows = this.db
+      .prepare(
+        `SELECT r.slot_id AS slot_id, SUM(r.amount) AS total
+         FROM refunds r JOIN payment_slots s ON s.id = r.slot_id
+         WHERE s.order_group_id = ?
+         GROUP BY r.slot_id`,
+      )
+      .all(orderGroupId) as { slot_id: string; total: number }[];
+    return new Map(rows.map((r) => [r.slot_id, r.total]));
   }
 
   /** Uncaptured groups created before the cutoff, candidates for hold reversal. */

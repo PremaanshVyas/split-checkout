@@ -58,6 +58,14 @@ Accepting the offer cancels the failed intent (verified `CANCELLED` at Airwallex
 
 ![Recovered order captured across two cards](docs/evidence/recovery-success.png)
 
+## Refund allocated pro-rata across both cards
+
+The first question about split payment is "who gets the refund?". Answered concretely: an uneven order ($1,119.49 / $80.51) was captured on two cards, then refunded in full. Each card received back exactly what it paid, as two real Airwallex refunds against intents `int_hkdm5dghvhk0h0z4jkp` and `int_hkdm5dghvhk0h0z8f8k`:
+
+![Refund allocated across both cards](docs/evidence/refund-success.png)
+
+Partial refunds allocate proportionally with integer-cent math (covered by unit tests), and the API rejects anything beyond the captured total.
+
 ## Transaction-type matrix
 
 Every documented sandbox card behavior, driven through the real UI (browser automation over the actual card-element iframes, one fresh order each). "Held" means the authorization landed and the capture-together gate would proceed. "Declined" means the slot stayed open for retry with the message shown.

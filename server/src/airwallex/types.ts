@@ -48,6 +48,16 @@ export interface CreatePaymentIntentParams {
   metadata?: Record<string, string>;
 }
 
+export interface Refund {
+  id: string;
+  payment_intent_id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  reason?: string;
+  created_at: string;
+}
+
 /** Error body shape returned by the Airwallex API. */
 export interface AirwallexErrorBody {
   code: string;

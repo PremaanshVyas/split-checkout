@@ -33,6 +33,17 @@ export function openDatabase(path = process.env.DB_PATH ?? "split-checkout.db"):
     );
 
     CREATE INDEX IF NOT EXISTS idx_payment_slots_group ON payment_slots(order_group_id);
+
+    CREATE TABLE IF NOT EXISTS refunds (
+      id                  TEXT PRIMARY KEY,
+      slot_id             TEXT NOT NULL REFERENCES payment_slots(id),
+      airwallex_refund_id TEXT NOT NULL,
+      amount              REAL NOT NULL,
+      status              TEXT NOT NULL,
+      created_at          TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_refunds_slot ON refunds(slot_id);
   `);
 
   return db;

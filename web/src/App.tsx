@@ -171,7 +171,7 @@ export default function App() {
           <div className="checkout-main">
             {order.status === "captured" ? (
               <>
-                <SuccessScreen order={order} />
+                <SuccessScreen order={order} onOrderUpdate={setOrder} />
                 <button className="back-link" onClick={backToShop}>
                   ← Continue shopping
                 </button>

@@ -16,6 +16,7 @@ export interface SlotView {
   client_secret?: string;
   last_error_code: string | null;
   error_message: string | null;
+  refunded_amount: number;
 }
 
 export interface OrderView {
@@ -24,10 +25,45 @@ export interface OrderView {
   total_amount: number;
   currency: string;
   status: OrderGroup["status"];
+  refunded_amount: number;
   slots: SlotView[];
 }
 
 export class SplitAmountError extends Error {}
+export class RefundError extends Error {}
+
+/**
+ * Pro-rata refund allocation, exact to the cent. Distributes `requestedCents`
+ * across slots proportionally to each slot's remaining refundable amount;
+ * rounding shortfall goes to the largest remaining slot first so the parts
+ * always sum to the request. Exported for direct unit testing.
+ */
+export function allocateRefund(
+  requestedCents: number,
+  availableCents: number[],
+): number[] {
+  const totalAvailable = availableCents.reduce((a, b) => a + b, 0);
+  if (requestedCents > totalAvailable) {
+    throw new RefundError(
+      `Refund of ${requestedCents} exceeds refundable ${totalAvailable} (in cents).`,
+    );
+  }
+  const allocations = availableCents.map((avail) =>
+    Math.min(avail, Math.floor((requestedCents * avail) / totalAvailable)),
+  );
+  let shortfall = requestedCents - allocations.reduce((a, b) => a + b, 0);
+  // Assign leftover cents to slots with headroom, largest headroom first.
+  const order = availableCents
+    .map((avail, i) => ({ headroom: avail - allocations[i]!, i }))
+    .sort((a, b) => b.headroom - a.headroom);
+  for (const { headroom, i } of order) {
+    if (shortfall === 0) break;
+    const add = Math.min(headroom, shortfall);
+    allocations[i]! += add;
+    shortfall -= add;
+  }
+  return allocations;
+}
 
 export class OrderService {
   constructor(
@@ -196,6 +232,50 @@ export class OrderService {
     return stale.length;
   }
 
+  /**
+   * Refund a captured order, allocating pro-rata across its slots. This is
+   * the question every payments engineer asks first about split payment
+   * ("who gets the refund?"), answered concretely: proportional to what
+   * each card actually paid, exact to the cent. Omitting `amount` refunds
+   * everything still refundable.
+   */
+  async refundOrder(orderGroupId: string, amount?: number): Promise<OrderView> {
+    const group = this.requireGroup(orderGroupId);
+    if (group.status !== "captured") {
+      throw new RefundError("Only fully captured orders can be refunded.");
+    }
+    const slots = this.store.getSlotsForGroup(orderGroupId);
+    const refunded = this.store.refundedBySlot(orderGroupId);
+    const availableCents = slots.map(
+      (slot) => Math.round(slot.amount * 100) - Math.round((refunded.get(slot.id) ?? 0) * 100),
+    );
+    const totalAvailableCents = availableCents.reduce((a, b) => a + b, 0);
+    const requestedCents = amount === undefined ? totalAvailableCents : Math.round(amount * 100);
+    if (requestedCents <= 0 || requestedCents > totalAvailableCents) {
+      throw new RefundError(
+        `Refund must be between 0.01 and ${(totalAvailableCents / 100).toFixed(2)} ${group.currency}.`,
+      );
+    }
+
+    const allocations = allocateRefund(requestedCents, availableCents);
+    for (const [i, slot] of slots.entries()) {
+      const cents = allocations[i]!;
+      if (cents === 0) continue;
+      const refund = await this.airwallex.createRefund(
+        slot.airwallex_intent_id,
+        cents / 100,
+        "split-checkout demo refund",
+      );
+      this.store.addRefund({
+        slotId: slot.id,
+        airwallexRefundId: refund.id,
+        amount: cents / 100,
+        status: refund.status,
+      });
+    }
+    return this.view(orderGroupId);
+  }
+
   getOrder(orderGroupId: string): OrderView {
     return this.view(orderGroupId);
   }
@@ -238,21 +318,25 @@ export class OrderService {
   private view(orderGroupId: string, secrets?: Map<string, string>): OrderView {
     const group = this.requireGroup(orderGroupId);
     const slots = this.store.getSlotsForGroup(orderGroupId);
+    const refunded = this.store.refundedBySlot(orderGroupId);
+    const slotViews = slots.map((slot) => ({
+      id: slot.id,
+      amount: slot.amount,
+      status: slot.status,
+      intent_id: slot.airwallex_intent_id,
+      ...(secrets?.has(slot.id) ? { client_secret: secrets.get(slot.id)! } : {}),
+      last_error_code: slot.last_error_code,
+      error_message: friendlyDeclineMessage(slot.last_error_code),
+      refunded_amount: refunded.get(slot.id) ?? 0,
+    }));
     return {
       id: group.id,
       merchant_order_ref: group.merchant_order_ref,
       total_amount: group.total_amount,
       currency: group.currency,
       status: group.status,
-      slots: slots.map((slot) => ({
-        id: slot.id,
-        amount: slot.amount,
-        status: slot.status,
-        intent_id: slot.airwallex_intent_id,
-        ...(secrets?.has(slot.id) ? { client_secret: secrets.get(slot.id)! } : {}),
-        last_error_code: slot.last_error_code,
-        error_message: friendlyDeclineMessage(slot.last_error_code),
-      })),
+      refunded_amount: slotViews.reduce((acc, s) => acc + s.refunded_amount, 0),
+      slots: slotViews,
     };
   }
 

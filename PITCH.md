@@ -15,7 +15,7 @@ A working implementation of split checkout on Airwallex's sandbox API, in both o
 - **Upfront splitting.** The shopper chooses to pay across two cards, sets the split, and each card is authorized without being charged. Capture happens only when every hold succeeds, together.
 - **Decline recovery.** The shopper pays normally with one card. If it declines, the checkout offers to split the purchase instead of losing the sale. This is the mode with hard commercial evidence: Air Europa's equivalent flow converts at 95.1% and recovered €2.4M.
 
-It is not a sketch. The state machine is tested, every documented sandbox transaction type is verified end to end (3DS challenges included), holds are reversed per Visa's authorization best practices, a signed webhook listener feeds the same state machine, and the whole thing is deployed. [EVIDENCE.md](EVIDENCE.md) has real intent IDs you can look up in the Airwallex dashboard.
+It is not a sketch. The state machine is tested, every documented sandbox transaction type is verified end to end (3DS challenges included), holds are reversed per Visa's authorization best practices, refunds allocate pro-rata across the cards to the cent, a signed webhook listener feeds the same state machine, and the whole thing is deployed. [EVIDENCE.md](EVIDENCE.md) has real intent IDs you can look up in the Airwallex dashboard.
 
 ## Why merchants don't build this themselves
 

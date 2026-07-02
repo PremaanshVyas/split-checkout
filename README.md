@@ -114,7 +114,7 @@ Sandbox note: amounts formatted `$8x.xx` are reserved by Airwallex to trigger er
 
 This is a demo of the core mechanism, not a finished product. Production would additionally need:
 
-- **Refund allocation.** A partial refund on a split order must decide which card(s) to refund, including expired or replaced cards.
+- **Refund policy depth.** Refunds are implemented (full or partial, allocated pro-rata across the cards to the cent, as real Airwallex refunds); production would add per-merchant policy choices (last-card-first, shopper-selected), settlement tracking via `refund.*` webhooks, and handling for expired or replaced cards.
 - **Dispute handling across issuers.** One order can now generate chargebacks from two banks with independent timelines.
 - **Scheme rules review.** Card-network rules on split tender and on authorization windows vary per scheme. The demo captures within seconds, well inside every window.
 - **Webhook-first status.** A signed webhook listener is implemented (HMAC-SHA256 verification, `payment_intent.*` events feeding the same state machine, safe under duplicate and out-of-order delivery), but the demo remains polling-primary so it runs deterministically from a fresh clone with no public URL. Production would invert that: webhooks drive, polling reconciles. To enable it, register `https://<your-host>/api/webhooks/airwallex` in the Airwallex dashboard (Developer, then Webhooks) and set `AIRWALLEX_WEBHOOK_SECRET`.

@@ -4,6 +4,7 @@ import type {
   AirwallexErrorBody,
   CreatePaymentIntentParams,
   PaymentIntent,
+  Refund,
 } from "./types.js";
 
 /** Refresh the access token this long before its stated expiry. */
@@ -94,6 +95,15 @@ export class AirwallexClient {
   async capturePaymentIntent(intentId: string): Promise<PaymentIntent> {
     return this.request<PaymentIntent>("POST", `/api/v1/pa/payment_intents/${intentId}/capture`, {
       request_id: randomUUID(),
+    });
+  }
+
+  async createRefund(intentId: string, amount: number, reason?: string): Promise<Refund> {
+    return this.request<Refund>("POST", "/api/v1/pa/refunds/create", {
+      request_id: randomUUID(),
+      payment_intent_id: intentId,
+      amount,
+      ...(reason !== undefined ? { reason } : {}),
     });
   }
 
