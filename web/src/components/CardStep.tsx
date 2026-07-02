@@ -14,6 +14,25 @@ interface Props {
 const fmt = (n: number, currency: string) =>
   new Intl.NumberFormat("en-AU", { style: "currency", currency }).format(n);
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(Object.assign(new Error("confirm timed out"), { code: "confirm_timeout" })),
+      ms,
+    );
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 /**
  * One card entry step. The Airwallex card element is mounted once per
  * payment flow, so every attempt (first try or post-decline retry)
@@ -55,10 +74,12 @@ export function CardStep({ slot, stepNumber, clientSecret, currency, onConfirmSe
     setBusy(true);
     let clientErrorCode: string | undefined;
     try {
-      await confirmHold(cardRef.current, {
-        intentId: slot.intent_id,
-        clientSecret,
-      });
+      // An abandoned 3DS challenge would otherwise leave confirm() pending
+      // forever — give up after a generous window and let the shopper retry.
+      await withTimeout(
+        confirmHold(cardRef.current, { intentId: slot.intent_id, clientSecret }),
+        90_000,
+      );
     } catch (err) {
       clientErrorCode = (err as { code?: string })?.code;
     }

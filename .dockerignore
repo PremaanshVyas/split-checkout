@@ -1,0 +1,12 @@
+node_modules
+*/node_modules
+dist
+*/dist
+.env
+*.db
+*.db-wal
+*.db-shm
+.git
+docs/evidence
+CLAUDE.md
+.claude

@@ -28,6 +28,7 @@ const SDK_CODE_MESSAGES: Record<string, string> = {
   processor_unavailable: "The payment network is temporarily unavailable. Wait a moment and try again.",
   processor_busy: "The payment network is busy. Wait a moment and try again.",
   expired: "This payment session expired. Refresh and try again.",
+  confirm_timeout: "Authentication took too long and was cancelled. Try again or use a different card.",
   invalid_card: "That card number doesn't look right. Check it and try again.",
   validation_error: "Some card details look incomplete. Check them and try again.",
 };

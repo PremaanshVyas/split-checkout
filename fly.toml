@@ -1,0 +1,21 @@
+# Fly.io config — deploy with `fly deploy` after `fly launch --no-deploy`.
+# Secrets (never in this file): fly secrets set AIRWALLEX_CLIENT_ID=... AIRWALLEX_API_KEY=...
+app = "split-checkout-demo"
+primary_region = "syd"
+
+[build]
+
+[env]
+  PORT = "3001"
+  AIRWALLEX_BASE_URL = "https://api-demo.airwallex.com"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

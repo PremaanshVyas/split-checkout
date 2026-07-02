@@ -23,7 +23,9 @@ app.get("/api/health", (_req, res) => {
 app.use("/api", ordersRouter(service));
 
 // In production the server also serves the built frontend (single deploy).
-const webDist = path.resolve(fileURLToPath(import.meta.url), "../../../web/dist");
+// WEB_DIST overrides the dev-layout default (compiled output nests deeper).
+const webDist =
+  process.env.WEB_DIST ?? path.resolve(fileURLToPath(import.meta.url), "../../../web/dist");
 app.use(express.static(webDist));
 app.get(/^\/(?!api\/).*/, (_req, res) => {
   res.sendFile(path.join(webDist, "index.html"), (err) => {
