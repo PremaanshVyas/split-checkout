@@ -8,7 +8,7 @@ A working demo of multi-card payment orchestration built directly on Airwallex's
 
 ## Why this exists
 
-High-ticket checkouts die at the payment step: a card limit, a low balance, or a shopper who wants to spread a purchase across funding sources. Airwallex's own research says **77% of shoppers abandon a purchase when their preferred payment method isn't available**. Splitting one payment across multiple cards is a conversion feature — and while Airwallex splits *outgoing* marketplace payouts, nothing on the platform today splits an *incoming* payment.
+High-ticket checkouts die at the payment step: a card limit, a low balance, or a shopper who wants to spread a purchase across funding sources. The industry numbers are blunt: Stripe's checkout research found **[85% of shoppers abandon](https://stripe.com/newsroom/news/state-of-checkouts-2022) a purchase when their preferred payment method isn't offered** (Airwallex's own materials cite 77% for the same effect), and insufficient funds is the [single largest cause of card declines](https://cdn2.hubspot.net/hubfs/464903/Ethoca%20Research%20Report%20-%20False%20Declines.pdf) — the exact failure a second card fixes. Splitting one payment across multiple cards is a conversion feature — and while Airwallex splits *outgoing* marketplace payouts, nothing on the platform today splits an *incoming* payment.
 
 This repo is an independent exploration of what that feature could look like built on Airwallex's existing primitives — no new money movement, no custody, just orchestration.
 
