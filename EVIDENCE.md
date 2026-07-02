@@ -38,6 +38,16 @@ Order `split-804b5d78`, split $1,119.49 / $80.51.
 
    ![Recovered and captured](docs/evidence/decline-success.png)
 
+## Live deployment + dashboard proof
+
+Order `split-44feffe5`, run by hand against the hosted demo (https://split-checkout-demo.fly.dev), AUD $1,200.00 split 50/50 — intents `int_hkdm5hl7nhk0bvbopk8` and `int_hkdm5hl7nhk0bvbsob7`:
+
+![Live checkout success](docs/evidence/live-success.png)
+
+And the same two charges in the Airwallex dashboard (Payments → Payment activity), both **Succeeded**, $600.00 AUD each, order IDs `split-44feffe5-card1` / `-card2` — Airwallex's own record of the split:
+
+![Airwallex dashboard showing both captures](docs/evidence/dashboard-succeeded.png)
+
 ## Sandbox finding worth knowing
 
 Airwallex's insufficient-funds test card (`5307 8373 6054 4518` @ $80.51) runs a **3DS challenge (OTP `1234`) before returning the code-51 decline**. The demo handles this (the challenge renders in the checkout via `authFormContainer`), and the discovery is written up in [DECISIONS.md](DECISIONS.md). Use it in a manual run to see the 3DS + issuer-decline path; the scripted evidence above uses the no-3DS risk-decline card so the run is deterministic.
