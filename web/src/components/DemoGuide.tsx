@@ -23,9 +23,9 @@ const TEST_CARDS: TestCard[] = [
     note: "A verification window opens, like a real bank check. Enter code 1234 to approve.",
   },
   {
-    label: "Insufficient funds",
+    label: "Insufficient funds (only at exactly $80.51)",
     number: "5307 8373 6054 4518",
-    note: "Choose the “Insufficient funds demo” split first. This card is declined for insufficient funds on the $80.51 amount. Enter 1234 if a verification window appears.",
+    note: "Sandbox quirk: this card declines only when the amount charged to it is exactly $80.51, and behaves like a normal card at any other amount. Use the “Insufficient funds demo” split and put this card on the $80.51 step (card 2). Enter 1234 if a verification window appears.",
   },
 ];
 

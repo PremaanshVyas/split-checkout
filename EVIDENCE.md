@@ -80,6 +80,9 @@ Every documented sandbox card behavior, driven through the real UI (browser auto
 | Insufficient funds (code 51) | `5307 8373 6054 4518` at $80.51 | Declined, retryable | modal, then "This card has insufficient funds…" |
 | Risk-engine decline | `4646 4646 4646 4644` | Declined, retryable | "This payment couldn't be accepted…" |
 | Invalid card number | `1111 1111 1111 1111` | Declined, retryable | "That card number doesn't look right…" |
+| Insufficient-funds card at any *other* amount | `5307 8373 6054 4518` at $1,119.49 | Held ✓ | behaves like a normal card; the sandbox decline triggers only at exactly $80.51 (documented in the demo guide after user testing surfaced the confusion) |
+| Shopper cancels the bank challenge | `4012 0003 0000 0088`, then Cancel | Declined, retryable | "Bank verification was cancelled. Try again when you're ready." |
+| Browser refresh mid-checkout | any | Checkout restored | card 1's hold intact after reload, checkout resumes at card 2; the success screen also survives reload |
 
 In every declined case the other card's hold was untouched and nothing was captured.
 

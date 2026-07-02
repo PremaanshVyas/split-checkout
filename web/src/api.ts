@@ -12,6 +12,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   getProducts: () => request<Product[]>("/api/products"),
 
+  getOrder: (orderId: string) => request<OrderView>(`/api/orders/${orderId}`),
+
   createOrder: (sku: string, splits: number[]) =>
     request<OrderView>("/api/orders", {
       method: "POST",

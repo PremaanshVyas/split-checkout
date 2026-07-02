@@ -163,3 +163,16 @@ Every non-obvious choice in this project, dated, with the alternatives considere
 **Alternatives considered for the allocation policy:** (a) last-card-first (reverse capture order), which concentrates the refund on one instrument and is simpler to reason about for disputes; (b) shopper-chooses, which is the flexible production answer but needs UI that would bloat the demo; (c) pro-rata, chosen because it is the fairest default when nothing is known about the cards and it exercises the interesting math.
 
 **Why the scope change:** "What happens on refund?" is the first question a payments engineer asks about split payment, and leaving it as a limitations bullet made the biggest objection also the least-answered one. A minimal honest implementation converts it into a demonstrated capability. Two things stayed out deliberately: refund settlement is asynchronous (we record the RECEIVED status and stop; production would track settlement via `refund.*` webhooks), and dispute handling across two issuers remains genuinely open.
+
+---
+
+## 2026-07-02: Edge cases from user testing, round two
+
+**What happened:** Manual testing produced a confusing result: the "insufficient funds" test card was accepted on card 1 and only declined on card 2. That is the sandbox working as documented (the card declines only when the charged amount is exactly $80.51, the magic-amount convention), but the demo guide's wording implied the card itself was bad, so correct behavior read as a bug. Treated as a prompt to audit the whole edge-case surface again rather than just fix the copy.
+
+**Decisions:**
+- **Checkout survives a browser refresh.** Order id, product sku, and the client_secrets now persist in sessionStorage; on load the order's true state is re-fetched from the server and the checkout resumes exactly where it was, holds intact. Previously a refresh stranded the order in React state and left card 1's hold dangling until the sweeper. sessionStorage over localStorage deliberately: closing the tab abandons the checkout and the sweep releases the holds, which is the correct default for a payment session.
+- **Cancelling the bank challenge gets real copy.** Empirically probed the SDK's rejection when a shopper clicks "Cancel authentication" mid-3DS: the code is `3ds_cancel_success` (their naming). Mapped it to "Bank verification was cancelled. Try again when you're ready." instead of the generic fallback; the slot stays open for retry.
+- **The demo guide explains the magic amount.** The insufficient-funds card entry now states plainly that it declines only at exactly $80.51 and behaves like a normal card at any other amount.
+
+**Also audited and confirmed already safe:** double-submit guards on every mutating button; duplicate or out-of-order status deliveries (monotonic slot states); concurrent refund requests (the second exceeds Airwallex's per-intent refund cap and fails cleanly upstream); malformed split amounts (cent-exact server validation); capture failures mid-gate (retryable idempotently).

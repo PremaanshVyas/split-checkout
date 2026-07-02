@@ -14,6 +14,30 @@ type Phase = "shop" | "split" | "checkout";
 const fmt = (n: number, currency: string) =>
   new Intl.NumberFormat("en-AU", { style: "currency", currency }).format(n);
 
+/**
+ * Checkout survives a browser refresh: order id, product sku, and the
+ * client_secrets (which only exist at order creation) are kept in
+ * sessionStorage, and the order's true state is re-fetched on load.
+ * Session-scoped on purpose: closing the tab abandons the checkout and
+ * the server-side sweep releases the holds.
+ */
+const SESSION_KEY = "split-checkout-session";
+
+interface SavedSession {
+  orderId: string;
+  sku: string;
+  secrets: Record<string, string>;
+}
+
+function loadSession(): SavedSession | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as SavedSession) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function App() {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
@@ -28,7 +52,38 @@ export default function App() {
   const [recoveryHint, setRecoveryHint] = useState(false);
 
   useEffect(() => {
-    api.getProducts().then(setProducts).catch(() => setFatalError("Could not reach the server."));
+    (async () => {
+      let loaded: Product[];
+      try {
+        loaded = await api.getProducts();
+      } catch {
+        setFatalError("Could not reach the server.");
+        return;
+      }
+      setProducts(loaded);
+
+      // Restore an in-flight checkout after a refresh.
+      const saved = loadSession();
+      if (!saved) return;
+      const savedProduct = loaded.find((p) => p.sku === saved.sku);
+      if (!savedProduct) {
+        sessionStorage.removeItem(SESSION_KEY);
+        return;
+      }
+      try {
+        const restored = await api.getOrder(saved.orderId);
+        if (restored.status === "failed") {
+          sessionStorage.removeItem(SESSION_KEY);
+          return;
+        }
+        setProduct(savedProduct);
+        setSecrets(saved.secrets);
+        setOrder(restored);
+        setPhase("checkout");
+      } catch {
+        sessionStorage.removeItem(SESSION_KEY);
+      }
+    })();
   }, []);
 
   const activeSlotIndex = useMemo(() => {
@@ -38,6 +93,7 @@ export default function App() {
   const activeSlot = activeSlotIndex >= 0 ? order?.slots[activeSlotIndex] : undefined;
 
   function backToShop() {
+    sessionStorage.removeItem(SESSION_KEY);
     setPhase("shop");
     setProduct(null);
     setOrder(null);
@@ -82,6 +138,10 @@ export default function App() {
       setOrder(created);
       setRecoveryHint(false);
       setPhase("checkout");
+      sessionStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({ orderId: created.id, sku: product.sku, secrets: secretMap }),
+      );
     } catch (err) {
       setFatalError((err as Error).message);
     } finally {

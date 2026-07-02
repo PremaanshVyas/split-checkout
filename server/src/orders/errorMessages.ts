@@ -30,6 +30,8 @@ const SDK_CODE_MESSAGES: Record<string, string> = {
   expired: "This payment session expired. Refresh and try again.",
   confirm_timeout: "Authentication took too long and was cancelled. Try again or use a different card.",
   authentication_declined: "Your bank couldn't verify this payment. Try again or use a different card.",
+  "3ds_cancel_success": "Bank verification was cancelled. Try again when you're ready.",
+  cancelled: "The payment was cancelled. Try again when you're ready.",
   invalid: "That card number doesn't look right. Check it and try again.",
   invalid_card: "That card number doesn't look right. Check it and try again.",
   validation_error: "Some card details look incomplete. Check them and try again.",
