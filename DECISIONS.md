@@ -101,3 +101,13 @@ Every non-obvious choice in this project, dated, with the alternatives considere
 **Decision:** (a) Always pass `authFormContainer` so any card that requires 3DS can complete authentication — this matters for real cards too, not just test ones. (b) Use the risk-decline test card (`4646 4646 4646 4644`, declines at any amount, no 3DS) as the primary scripted decline demo, and keep the code-51 card as the manual demo with the OTP hint shown in the UI.
 
 **Why it's recorded:** The spec's rule was that a documented surprise beats a silent workaround. The lesson generalizes: client-side confirm outcomes are not binary success/decline — there is a customer-action middle state the UI must host, which is exactly why the server-side Retrieve is the only source of truth.
+
+---
+
+## 2026-07-02 — Deploy: Fly.io, one machine, scale-to-zero
+
+**Decision:** The hosted demo runs on Fly.io as a single machine (`fly scale count 1`) with scale-to-zero, SQLite on the machine's ephemeral disk.
+
+**Alternatives:** Render (needs a GitHub repo connection — this repo is local-only until the pitch); two+ machines for availability; a Fly volume or managed Postgres for durable state.
+
+**Why:** Fly deploys straight from the local working tree, which fits a private pre-pitch repo. The first deploy defaulted to two machines "for high availability" and immediately demonstrated why that's wrong here: each machine had its own SQLite file, so an order created on one machine 404'd when the verify request landed on the other. One machine is the honest topology for a SQLite demo. Order state is checkout-session-scoped, so losing it on redeploy/restart is acceptable — noted in README limitations; production would use Postgres and any number of instances.

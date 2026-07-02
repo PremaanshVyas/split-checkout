@@ -4,7 +4,7 @@
 
 A working demo of multi-card payment orchestration built directly on Airwallex's sandbox API: one order becomes N PaymentIntents, every card is *authorized without being charged*, and money moves only when all of the holds succeed — captured together, settling straight to the merchant's Airwallex account.
 
-> **Try it:** run it locally in two minutes ([below](#run-it-yourself)), or use the hosted demo *(URL coming once deployed)*. Decline path included — you can watch a card fail safely in about ten seconds.
+> **Try it now: https://split-checkout-demo.fly.dev** — sandbox only, no real money; test card numbers are on the checkout page. Or run it locally in two minutes ([below](#run-it-yourself)). Decline path included — you can watch a card fail safely in about ten seconds.
 
 ## Why this exists
 
