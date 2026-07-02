@@ -52,6 +52,10 @@ A recorded walk through the dashboard tells the whole story in one place: order 
 
 ![Airwallex dashboard walkthrough: split captures and pro-rata refunds](docs/evidence/dashboard.gif)
 
+And the dashboard's Analytics view of the same activity: a 100.00% payment acceptance rate across 34 successful attempts out of 34, the acceptance chart, and the declined-payments panel. (Refund figures live on the payment list and detail pages above; the sandbox Analytics tab covers acceptance and declines.)
+
+![Airwallex dashboard analytics: acceptance rate and attempt stats](docs/evidence/dashboard-analytics.gif)
+
 ## Decline recovery: a failed single-card payment converts to a split
 
 The rescue mode, and the deployment with the strongest commercial evidence (Air Europa's equivalent flow converts at 95.1%). A standard one-card payment is attempted with the always-declines card; instead of a dead end, the checkout offers to split:
