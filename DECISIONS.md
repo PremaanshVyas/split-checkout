@@ -131,3 +131,13 @@ Every non-obvious choice in this project, dated, with the alternatives considere
 **Alternatives:** The original design let unneeded holds expire on their own (~5 days for cards) — documented as acceptable because no money moves either way.
 
 **Why:** Reading Visa's [authorization best-practices](https://usa.visa.com/content/dam/VCOM/regional/na/us/support-legal/documents/authorization-and-reversal-processing-best-practices-for-merchants.pdf) changed the calculus: merchants are expected to reverse approved authorizations within 24 hours of learning a transaction won't complete, and authorizations never matched to a capture or reversal attract a Misuse of Authorization fee. "Let it expire" is therefore not just lazy UX (the shopper's money stays locked for days) — it's the exact behavior the scheme penalizes, and plausibly a reason risk-averse merchants avoid multi-card flows entirely. A split-payment system that wants to be taken seriously must treat hold reversal as a first-class path. The 60-minute TTL matches the client_secret lifetime: past it, the checkout session cannot proceed anyway. Covered by unit tests against a stubbed Airwallex client.
+
+---
+
+## 2026-07-02 — Decline recovery: split offered as a rescue, not only a choice
+
+**Decision:** The store now has a standard single-card checkout as the default path. When that card declines, the checkout offers "split it across two cards" in place — the failed intent is cancelled (hold-reversal path) and the shopper re-enters the split flow with their context intact. Under the hood a single-card purchase is a **one-slot order group**, so both modes run the same state machine and capture gate.
+
+**Alternatives:** (a) Upfront-only splitting (the original design) — but shoppers who don't plan to split never see the feature, and the strongest commercial evidence is for rescue: Air Europa's two-card decline-recovery flow converts at 95.1% and drove €2.4M of its €3.8M split-payments revenue. (b) Retrying the split on the same PaymentIntent — rejected because intent amounts are fixed at creation; a split needs fresh intents per part, so cancel-and-recreate is the honest mechanics.
+
+**Why:** Insufficient funds is the single largest cause of card declines (≈44% per Ethoca). A declined shopper is a person mid-purchase with money on other cards — the highest-intent moment a conversion feature can target. Modeling single-card purchases as one-slot groups meant recovery cost ~30 lines: relax the two-part minimum, add the offer panel, and reuse abandon + create.

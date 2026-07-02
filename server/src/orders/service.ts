@@ -36,7 +36,10 @@ export class OrderService {
   ) {}
 
   /**
-   * One order → N PaymentIntents, one per split amount. The client only
+   * One order → N PaymentIntents, one per split amount. A single-card
+   * purchase is simply a one-slot order — same state machine, same
+   * capture gate — which is what makes decline recovery cheap: a failed
+   * single-card order converts to a two-slot one. The client only
    * proposes a product and how to split it; the total is always the
    * server-side catalog price, and the parts must sum to it exactly.
    */
@@ -45,8 +48,8 @@ export class OrderService {
     if (!product) {
       throw new SplitAmountError(`Unknown product: ${sku}`);
     }
-    if (splits.length < 2) {
-      throw new SplitAmountError("A split order needs at least two parts.");
+    if (splits.length < 1) {
+      throw new SplitAmountError("An order needs at least one part.");
     }
     if (splits.some((amount) => !Number.isFinite(amount) || amount < 1)) {
       throw new SplitAmountError("Each part must be at least 1.00.");

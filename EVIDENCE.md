@@ -48,6 +48,16 @@ And the same two charges in the Airwallex dashboard (Payments → Payment activi
 
 ![Airwallex dashboard showing both captures](docs/evidence/dashboard-succeeded.png)
 
+## Decline recovery — a failed single-card payment converts to a split
+
+The rescue mode (the deployment with the strongest commercial evidence — Air Europa's equivalent flow converts at 95.1%). A standard one-card payment is attempted with the always-declines card; instead of a dead end, the checkout offers to split:
+
+![Declined single-card payment with split offer](docs/evidence/recovery-offer.png)
+
+Accepting the offer cancels the failed intent (verified `CANCELLED` at Airwallex — the hold-reversal path), and the shopper completes the same purchase across two cards (`int_hkdm5dghvhk0f7106vc`, `int_hkdmpgxk2hk0f713zpr`, both captured together):
+
+![Recovered order captured across two cards](docs/evidence/recovery-success.png)
+
 ## Transaction-type matrix
 
 Every documented sandbox card behavior, driven through the real UI (browser automation over the actual card-element iframes, one fresh order each). "Held" means the authorization landed and the capture-together gate would proceed; "Declined" means the slot stayed open for retry with the message shown.

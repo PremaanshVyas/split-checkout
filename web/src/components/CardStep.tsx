@@ -5,6 +5,7 @@ import type { SlotView } from "../types";
 interface Props {
   slot: SlotView;
   stepNumber: number;
+  totalSlots: number;
   clientSecret: string | undefined;
   currency: string;
   /** Reports the confirm outcome so the server can verify the true status. */
@@ -38,7 +39,15 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
  * payment flow, so every attempt (first try or post-decline retry)
  * creates a fresh element — `attempt` in the effect deps drives that.
  */
-export function CardStep({ slot, stepNumber, clientSecret, currency, onConfirmSettled }: Props) {
+export function CardStep({
+  slot,
+  stepNumber,
+  totalSlots,
+  clientSecret,
+  currency,
+  onConfirmSettled,
+}: Props) {
+  const single = totalSlots === 1;
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<CardElement | null>(null);
   const [ready, setReady] = useState(false);
@@ -92,13 +101,13 @@ export function CardStep({ slot, stepNumber, clientSecret, currency, onConfirmSe
 
   return (
     <section className="card-step">
-      <h2>
-        Card {stepNumber} — {fmt(slot.amount, currency)}
-      </h2>
-      <p className="muted">
-        This places a hold only. <strong>You will not be charged yet</strong> — no money moves until
-        every card in this order is authorized.
-      </p>
+      <h2>{single ? `Pay ${fmt(slot.amount, currency)}` : `Card ${stepNumber} — ${fmt(slot.amount, currency)}`}</h2>
+      {!single && (
+        <p className="muted">
+          This places a hold only. <strong>You will not be charged yet</strong> — no money moves
+          until every card in this order is authorized.
+        </p>
+      )}
 
       {slot.error_message && (
         <p className="error" role="alert">
@@ -109,7 +118,13 @@ export function CardStep({ slot, stepNumber, clientSecret, currency, onConfirmSe
       <div ref={containerRef} className="card-element-container" />
 
       <button className="primary" disabled={!ready || busy} onClick={placeHold}>
-        {busy ? "Placing hold…" : `Place hold for ${fmt(slot.amount, currency)}`}
+        {busy
+          ? single
+            ? "Processing…"
+            : "Placing hold…"
+          : single
+            ? `Pay ${fmt(slot.amount, currency)}`
+            : `Place hold for ${fmt(slot.amount, currency)}`}
       </button>
       {busy && (
         <p className="muted small">

@@ -15,7 +15,7 @@ const TEST_CARDS: TestCard[] = [
   {
     label: "Card that always declines",
     number: "4646 4646 4646 4644",
-    note: "Use it on either step to see the safe-failure path — the other card is never charged, and you can retry with a different card.",
+    note: "Use it with “Pay with one card” to see decline recovery — the checkout offers to split the purchase instead of losing it. In a split, the other card is never charged and you can retry.",
   },
   {
     label: "Bank verification (3D Secure)",
