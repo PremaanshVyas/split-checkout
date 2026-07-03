@@ -11,7 +11,6 @@ export interface Product {
   reviews: number;
   stock: number;
   tags: string[];
-  art: string;
   image: string;
 }
 
@@ -40,7 +39,7 @@ export interface CartLine {
   price: number;
   quantity: number;
   color?: string;
-  art: string;
+  stock: number;
   image: string;
 }
 

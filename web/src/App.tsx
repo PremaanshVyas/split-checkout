@@ -52,6 +52,9 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [recoveryHint, setRecoveryHint] = useState(false);
+  // Whether the current checkout came from the cart (clears it on success)
+  // or from buy-now (leaves the cart alone).
+  const [checkoutFromCart, setCheckoutFromCart] = useState(false);
 
   useEffect(() => {
     sessionStorage.setItem(CART_KEY, JSON.stringify(cart));
@@ -102,7 +105,7 @@ export default function App() {
           i === existing ? { ...l, quantity: Math.min(10, l.quantity + quantity) } : l,
         );
       }
-      return [...prev, { sku: p.sku, name: p.name, price: p.price, quantity, color, art: p.art, image: p.image }];
+      return [...prev, { sku: p.sku, name: p.name, price: p.price, quantity, color, stock: p.stock, image: p.image }];
     });
     setPhase("cart");
   }
@@ -130,7 +133,7 @@ export default function App() {
       setRecoveryHint(false);
       setPhase("checkout");
       // Paying for the cart clears it; a buy-now leaves the cart alone.
-      if (checkoutLines === cart || JSON.stringify(checkoutLines) === JSON.stringify(cart)) {
+      if (checkoutFromCart) {
         setCart([]);
       }
       sessionStorage.setItem(SESSION_KEY, JSON.stringify({ orderId: created.id, secrets: secretMap }));
@@ -213,8 +216,9 @@ export default function App() {
           onAddToCart={addToCart}
           onBuyNow={(p, quantity, color) => {
             setCheckoutLines([
-              { sku: p.sku, name: p.name, price: p.price, quantity, color, art: p.art, image: p.image },
+              { sku: p.sku, name: p.name, price: p.price, quantity, color, stock: p.stock, image: p.image },
             ]);
+            setCheckoutFromCart(false);
             setRecoveryHint(false);
             setPhase("pay");
           }}
@@ -231,6 +235,7 @@ export default function App() {
           onRemove={(i) => setCart((prev) => prev.filter((_, idx) => idx !== i))}
           onCheckout={() => {
             setCheckoutLines(cart);
+            setCheckoutFromCart(true);
             setRecoveryHint(false);
             setPhase("pay");
           }}
@@ -239,7 +244,7 @@ export default function App() {
 
       {phase === "pay" && checkoutLines.length > 0 && (
         <div className="split-page">
-          <button className="back-link" onClick={() => setPhase(checkoutLines === cart ? "cart" : "shop")}>
+          <button className="back-link" onClick={() => setPhase(checkoutFromCart ? "cart" : "shop")}>
             ← Back
           </button>
           <div className="pay-summary">

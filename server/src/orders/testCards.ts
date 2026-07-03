@@ -28,10 +28,21 @@ const PUBLISHED_TEST_PANS = new Set([
   "4646464646464644",
 ]);
 
-/** Friendly aliases so an agent never needs to know raw PANs. */
+/**
+ * Friendly aliases so an agent never needs to know raw PANs. All seven
+ * schemes Airwallex accepts are represented, so mixed-scheme splits
+ * (a Visa leg plus an Amex leg, say) are demoable by name.
+ */
 export const TEST_CARD_ALIASES: Record<string, string> = {
   success: "4035501000000008",
+  visa: "4035501000000008",
+  mastercard: "5354563134257854",
   success_mastercard: "5354563134257854",
+  amex: "370636803809394",
+  unionpay: "6252470144444939",
+  jcb: "3569599999097585",
+  discover: "6580070000000008",
+  diners: "3600070000000001",
   decline: "4646464646464644",
   insufficient_funds: "5307837360544518",
   "3ds_challenge": "4012000300000088",

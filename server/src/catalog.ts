@@ -21,8 +21,6 @@ export interface Product {
   reviews: number;
   stock: number;
   tags: string[];
-  /** Emoji fallback for compact contexts. */
-  art: string;
   /** Product photo, served from the web build (see ATTRIBUTIONS.md). */
   image: string;
 }
@@ -52,7 +50,6 @@ export const PRODUCTS: Product[] = [
     reviews: 214,
     stock: 7,
     tags: ["dual boiler", "pid", "flagship"],
-    art: "☕",
   },
   {
     sku: "aurora-ex-5",
@@ -69,7 +66,6 @@ export const PRODUCTS: Product[] = [
     reviews: 388,
     stock: 15,
     tags: ["compact", "starter"],
-    art: "☕",
   },
   {
     sku: "aurora-lever-one",
@@ -86,7 +82,6 @@ export const PRODUCTS: Product[] = [
     reviews: 96,
     stock: 3,
     tags: ["lever", "manual", "flagship"],
-    art: "🫗",
   },
   {
     sku: "aurora-grinder-64",
@@ -103,7 +98,6 @@ export const PRODUCTS: Product[] = [
     reviews: 502,
     stock: 22,
     tags: ["single dose", "flat burr"],
-    art: "🌀",
   },
   {
     sku: "aurora-grinder-83",
@@ -120,7 +114,6 @@ export const PRODUCTS: Product[] = [
     reviews: 143,
     stock: 5,
     tags: ["flat burr", "prosumer"],
-    art: "🌀",
   },
   {
     sku: "aurora-hand-mill",
@@ -137,7 +130,6 @@ export const PRODUCTS: Product[] = [
     reviews: 831,
     stock: 40,
     tags: ["travel", "conical", "manual"],
-    art: "⚙️",
   },
   {
     sku: "aurora-kettle",
@@ -154,7 +146,6 @@ export const PRODUCTS: Product[] = [
     reviews: 655,
     stock: 31,
     tags: ["gooseneck", "pour over"],
-    art: "🫖",
   },
   {
     sku: "aurora-kettle-stove",
@@ -170,7 +161,6 @@ export const PRODUCTS: Product[] = [
     reviews: 289,
     stock: 18,
     tags: ["gooseneck", "stovetop"],
-    art: "🫖",
   },
   {
     sku: "aurora-dripper",
@@ -186,7 +176,6 @@ export const PRODUCTS: Product[] = [
     reviews: 1024,
     stock: 60,
     tags: ["pour over", "ceramic"],
-    art: "🍶",
   },
   {
     sku: "aurora-press",
@@ -202,7 +191,6 @@ export const PRODUCTS: Product[] = [
     reviews: 2210,
     stock: 0,
     tags: ["immersion", "travel"],
-    art: "🧋",
   },
   {
     sku: "aurora-cold-tower",
@@ -219,7 +207,6 @@ export const PRODUCTS: Product[] = [
     reviews: 77,
     stock: 4,
     tags: ["cold brew", "glass", "statement"],
-    art: "⏳",
   },
   {
     sku: "aurora-scale",
@@ -235,7 +222,6 @@ export const PRODUCTS: Product[] = [
     reviews: 468,
     stock: 26,
     tags: ["scale", "timer"],
-    art: "⚖️",
   },
   {
     sku: "aurora-tamper",
@@ -251,7 +237,6 @@ export const PRODUCTS: Product[] = [
     reviews: 312,
     stock: 34,
     tags: ["tamper", "58.5mm"],
-    art: "🔨",
   },
   {
     sku: "aurora-milk-jug",
@@ -267,7 +252,6 @@ export const PRODUCTS: Product[] = [
     reviews: 590,
     stock: 48,
     tags: ["milk", "latte art"],
-    art: "🥛",
   },
   {
     sku: "aurora-knock-box",
@@ -283,7 +267,6 @@ export const PRODUCTS: Product[] = [
     reviews: 201,
     stock: 12,
     tags: ["knock box"],
-    art: "🪵",
   },
   {
     sku: "aurora-barista-bundle",
@@ -300,7 +283,6 @@ export const PRODUCTS: Product[] = [
     reviews: 58,
     stock: 2,
     tags: ["bundle", "flagship", "gift"],
-    art: "🧰",
   },
 ];
 

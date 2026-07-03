@@ -38,7 +38,7 @@ export function CartView({ cart, onUpdateQty, onRemove, onCheckout, onBack }: Pr
                     −
                   </button>
                   <span>{line.quantity}</span>
-                  <button onClick={() => onUpdateQty(i, Math.min(10, line.quantity + 1))} aria-label="Increase">
+                  <button onClick={() => onUpdateQty(i, Math.min(10, line.stock > 0 ? line.stock : 10, line.quantity + 1))} aria-label="Increase">
                     +
                   </button>
                 </div>

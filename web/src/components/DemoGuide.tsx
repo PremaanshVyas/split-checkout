@@ -70,6 +70,10 @@ export function DemoGuide() {
           </li>
         ))}
       </ul>
+      <p className="muted small">
+        Mixed schemes work too: Amex <code>3706 368038 09394</code>, UnionPay{" "}
+        <code>6252 4701 4444 4939</code>, JCB, Discover. Any split can combine them.
+      </p>
     </div>
   );
 }

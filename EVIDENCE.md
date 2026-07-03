@@ -108,6 +108,8 @@ Every documented sandbox card behavior, driven through the real UI (browser auto
 
 In every declined case the other card's hold was untouched and nothing was captured.
 
+Mixed schemes split cleanly too: one order paid $500 on a Visa leg plus $399 on an American Express leg, captured together (`int_hkdmjhgg5hk1suwyrkc`, `int_hkdm9crz9hk1sux2vg9`). The demo's aliases cover all seven schemes Airwallex accepts.
+
 ![3DS bank verification modal](docs/evidence/3ds-modal.png)
 
 ## Sandbox finding worth knowing

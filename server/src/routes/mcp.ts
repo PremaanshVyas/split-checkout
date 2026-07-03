@@ -53,7 +53,7 @@ export function buildMcpServer(service: OrderService, mandates: MandateStore): M
 
   server.tool(
     "search_catalog",
-    "Search the demo store's catalog. All filters are optional and combinable. Returns matching products (sku, name, category, price in AUD, colors, rating, stock) plus facet counts so you can refine.",
+    "Search the demo store's catalog. All filters are optional and combinable. Returns matching products (sku, name, tagline, category, price in AUD, colors, rating, review count, stock, image_url) plus facet counts so you can refine.",
     {
       query: z.string().optional().describe("Free-text search over names, descriptions, tags"),
       category: z
@@ -111,7 +111,7 @@ export function buildMcpServer(service: OrderService, mandates: MandateStore): M
 
   server.tool(
     "split_purchase",
-    "Buy one or more products with payment split across multiple cards. Every card is authorized without being charged; capture happens together only if ALL holds succeed, so a declined card never strands a charged one. Pay EITHER with a mandate code (preferred: the human delegated you a budget and you never touch a card; the server enforces the budget and expiry) OR with explicit cards. Card aliases: 'success', 'success_mastercard', 'decline', 'insufficient_funds' (declines only on an $80.51 part), '3ds_challenge' (cannot complete without a browser); published Airwallex test PANs also work, real card numbers are rejected. If splits is omitted, the total divides evenly. Returns the order with real sandbox PaymentIntent ids.",
+    "Buy one or more products with payment split across multiple cards. Every card is authorized without being charged; capture happens together only if ALL holds succeed, so a declined card never strands a charged one. Pay EITHER with a mandate code (preferred: the human delegated you a budget and you never touch a card; the server enforces the budget and expiry) OR with explicit cards. Card aliases cover all seven schemes Airwallex accepts, so mixed-scheme splits work: 'visa' (or 'success'), 'mastercard', 'amex', 'unionpay', 'jcb', 'discover', 'diners', plus 'decline', 'insufficient_funds' (declines only on an $80.51 part), and '3ds_challenge' (cannot complete without a browser). Published Airwallex test PANs also work; real card numbers are rejected. If splits is omitted, the total divides evenly. Returns the order with real sandbox PaymentIntent ids.",
     {
       items: z
         .array(
