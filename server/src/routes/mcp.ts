@@ -4,6 +4,7 @@ import { Router, json } from "express";
 import { z } from "zod";
 import { getProduct, searchProducts } from "../catalog.js";
 import type { OrderItemRequest, OrderService, OrderView } from "../orders/service.js";
+import type { MandateStore } from "../orders/mandates.js";
 import { TEST_CARD_ALIASES, resolveTestCard } from "../orders/testCards.js";
 
 /**
@@ -47,7 +48,7 @@ const asText = (value: unknown) => ({
   content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }],
 });
 
-export function buildMcpServer(service: OrderService): McpServer {
+export function buildMcpServer(service: OrderService, mandates: MandateStore): McpServer {
   const server = new McpServer({ name: "split-checkout", version: "1.0.0" });
 
   server.tool(
@@ -110,7 +111,7 @@ export function buildMcpServer(service: OrderService): McpServer {
 
   server.tool(
     "split_purchase",
-    "Buy one or more products with payment split across multiple cards. Every card is authorized without being charged; capture happens together only if ALL holds succeed, so a declined card never strands a charged one. Provide one card per split part. If splits is omitted, the cart total is divided evenly across the cards. cards accepts aliases: 'success', 'success_mastercard', 'decline', 'insufficient_funds' (declines only on an $80.51 part), '3ds_challenge' (cannot complete without a browser), or published Airwallex test PANs. Real card numbers are rejected. Returns the order with real sandbox PaymentIntent ids.",
+    "Buy one or more products with payment split across multiple cards. Every card is authorized without being charged; capture happens together only if ALL holds succeed, so a declined card never strands a charged one. Pay EITHER with a mandate code (preferred: the human delegated you a budget and you never touch a card; the server enforces the budget and expiry) OR with explicit cards. Card aliases: 'success', 'success_mastercard', 'decline', 'insufficient_funds' (declines only on an $80.51 part), '3ds_challenge' (cannot complete without a browser); published Airwallex test PANs also work, real card numbers are rejected. If splits is omitted, the total divides evenly. Returns the order with real sandbox PaymentIntent ids.",
     {
       items: z
         .array(
@@ -121,13 +122,37 @@ export function buildMcpServer(service: OrderService): McpServer {
           }),
         )
         .min(1),
-      cards: z.array(z.string()).min(1).describe("One card (alias or test PAN) per split part"),
+      mandate: z
+        .string()
+        .optional()
+        .describe("A mandate code (mdt-...) delegated by the human. Use instead of cards."),
+      cards: z
+        .array(z.string())
+        .min(1)
+        .optional()
+        .describe("One card (alias or test PAN) per split part. Ignored when mandate is set."),
       splits: z
         .array(z.number())
         .optional()
         .describe("Amount per card; must sum to the cart total. Omit to split evenly."),
     },
-    async ({ items, cards, splits }) => {
+    async ({ items, mandate, cards, splits }) => {
+      const cleanItems: OrderItemRequest[] = items.map((i) => ({
+        sku: i.sku,
+        ...(i.quantity !== undefined ? { quantity: i.quantity } : {}),
+        ...(i.color !== undefined ? { color: i.color } : {}),
+      }));
+
+      if (mandate) {
+        const result = await service.mandateCheckout(mandate, cleanItems, splits);
+        return asText({ ...orderSummary(result.order), mandate: result.mandate });
+      }
+
+      if (!cards) {
+        return asText({
+          error: "Provide either a mandate code or a cards array.",
+        });
+      }
       const resolved: { pan: string }[] = [];
       for (const card of cards) {
         const pan = resolveTestCard(card);
@@ -143,25 +168,40 @@ export function buildMcpServer(service: OrderService): McpServer {
       let parts = splits;
       if (!parts) {
         // Even split, exact to the cent: remainder cents go to the first cards.
-        let totalCents = 0;
-        for (const item of items) {
-          const product = getProduct(item.sku);
-          if (!product) return asText({ error: `No product with sku ${item.sku}` });
-          totalCents += Math.round(product.price * 100) * (item.quantity ?? 1);
-        }
+        const totalCents = service.cartTotalCents(cleanItems);
         const base = Math.floor(totalCents / cards.length);
         parts = cards.map(
           (_, i) => (base + (i < totalCents - base * cards.length ? 1 : 0)) / 100,
         );
       }
-      const cleanItems: OrderItemRequest[] = items.map((i) => ({
-        sku: i.sku,
-        ...(i.quantity !== undefined ? { quantity: i.quantity } : {}),
-        ...(i.color !== undefined ? { color: i.color } : {}),
-      }));
       const order = await service.agentCheckout(cleanItems, parts, resolved);
       return asText(orderSummary(order));
     },
+  );
+
+  server.tool(
+    "mandate_status",
+    "Check a spending mandate: remaining budget, expiry, and state (active, exhausted, expired, revoked). Call this before attempting a purchase you are not sure the budget covers.",
+    { code: z.string() },
+    async ({ code }) => asText(mandates.status(code)),
+  );
+
+  server.tool(
+    "create_demo_mandate",
+    "DEMO ONLY: mint a spending mandate for yourself so the flow can be tried without visiting the store UI. In production the human would authorize this in their wallet with their own funding sources; that delegation handshake is exactly what Airwallex's Airi describes. Defaults: two test cards, 60-minute expiry.",
+    {
+      max_amount: z.number().describe("Budget in AUD, 1.00 to 100000.00"),
+      ttl_minutes: z.number().int().min(5).max(1440).optional(),
+      cards: z.array(z.string()).min(1).max(4).optional(),
+    },
+    async ({ max_amount, ttl_minutes, cards }) =>
+      asText(
+        mandates.create({
+          cards: cards ?? ["success", "success_mastercard"],
+          maxAmount: max_amount,
+          ttlMinutes: ttl_minutes ?? 60,
+        }),
+      ),
   );
 
   server.tool(
@@ -189,11 +229,11 @@ export function buildMcpServer(service: OrderService): McpServer {
 }
 
 /** Stateless Streamable HTTP: one server+transport pair per request. */
-export function mcpRouter(service: OrderService): Router {
+export function mcpRouter(service: OrderService, mandates: MandateStore): Router {
   const router = Router();
 
   router.post("/mcp", json(), async (req, res) => {
-    const server = buildMcpServer(service);
+    const server = buildMcpServer(service, mandates);
     // The SDK's types are not authored for exactOptionalPropertyTypes;
     // sessionIdGenerator: undefined is the documented stateless mode.
     const transport = new StreamableHTTPServerTransport({

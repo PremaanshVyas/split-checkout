@@ -9,9 +9,10 @@ import { CardStep } from "./components/CardStep";
 import { StatusChip } from "./components/StatusChip";
 import { SuccessScreen } from "./components/SuccessScreen";
 import { DemoGuide } from "./components/DemoGuide";
+import { AgentMode } from "./components/AgentMode";
 import "./App.css";
 
-type Phase = "shop" | "product" | "cart" | "pay" | "checkout";
+type Phase = "shop" | "product" | "cart" | "pay" | "checkout" | "agent";
 
 const fmt = (n: number, currency = "AUD") =>
   new Intl.NumberFormat("en-AU", { style: "currency", currency }).format(n);
@@ -180,6 +181,9 @@ export default function App() {
         </button>
         <div className="masthead-right">
           <span className="muted small">Demo store · Airwallex sandbox · no real money</span>
+          <button className="agent-link" onClick={() => setPhase("agent")}>
+            Agent mode
+          </button>
           <button className="cart-button" onClick={() => setPhase("cart")} aria-label="Cart">
             🛒{cartCount > 0 && <span className="cart-count">{cartCount}</span>}
           </button>
@@ -190,6 +194,8 @@ export default function App() {
       <div id="awx-auth-form" />
 
       {fatalError && !order && <p className="error">{fatalError}</p>}
+
+      {phase === "agent" && <AgentMode onBack={() => setPhase("shop")} />}
 
       {phase === "shop" && (
         <ProductGrid

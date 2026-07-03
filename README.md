@@ -156,7 +156,30 @@ A sample run (real sandbox PaymentIntent ids):
 refunded 150 AUD, allocated 87.50 / 62.50 across the cards (pro-rata to the 700/500 split)
 ```
 
-The tool shapes follow the conventions the field is converging on (Shopify's storefront MCP `search_catalog`/`get_product` pattern; open browse tools with the sensitive step guarded), and the payment layer is the part none of the emerging agentic-commerce standards cover: OpenAI/Stripe's ACP delegates a single-instrument token per checkout, and Google's UCP/AP2 mandates assume one funding source per payment. Splitting one agent purchase across multiple funding sources appears to be genuinely uncharted, which is exactly the Airi-shaped gap this demonstrates.
+### Delegated spending: give the agent a budget, not a card
+
+The trust question in agentic commerce is "what stops the agent overspending?", and the field's answer is converging on scoped delegation: ACP's `allowance` (max amount, expiry, single merchant), AP2's signed mandates, Visa and Mastercard's agentic tokens. Airwallex's Airi roadmap describes the same thing: delegated agent payments with spend limits. This demo implements it end to end:
+
+1. In the store's **Agent mode**, you create a mandate: a budget, an expiry, and the backing cards. You get a short code.
+2. The agent shops with `split_purchase(mandate: "mdt-...")`. It never sees, names, or holds a card.
+3. The **server** enforces everything: over-budget purchases are refused before any payment intent exists, the budget only decrements when an order actually captures (declines cost nothing), expiry and revocation are checked on every spend, and refunds deliberately do not restore budget.
+
+A real enforcement transcript (a $600 mandate, verbatim):
+
+```
+> split_purchase(items: [{sku: "aurora-barista-bundle"}], mandate: "mdt-05220909")
+This purchase (1950.00 AUD) exceeds the mandate's remaining budget of 600.00 AUD.
+
+> split_purchase(items: [{sku: "aurora-grinder-64"}], mandate: "mdt-05220909")
+captured: $242.50 + $242.50 across the mandate's two cards. Remaining budget: 115.00 AUD.
+
+> split_purchase(items: [{sku: "aurora-kettle"}], mandate: "mdt-05220909")
+This purchase (189.00 AUD) exceeds the mandate's remaining budget of 115.00 AUD.
+```
+
+The refusals come from the payment layer, not from the agent's judgment, which is the entire point.
+
+The tool shapes follow the conventions the field is converging on (Shopify's storefront MCP `search_catalog`/`get_product` pattern; open browse tools with the sensitive step guarded), and the payment layer covers what none of the emerging agentic-commerce standards do: ACP, UCP, and AP2 all assume one funding source per checkout, while this demo's mandates split one agent purchase across several, with the budget enforced across all of them together.
 
 Safety: the purchase tool accepts **only Airwallex's published sandbox test cards** (or friendly aliases like `success` and `decline`); any other number is rejected before a single API call. Server-side card handling here is a sandbox demo device; a production agent flow would use tokenized credentials or wallet delegation (which is precisely Airi territory), never raw PANs.
 

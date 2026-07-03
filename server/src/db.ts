@@ -47,6 +47,18 @@ export function openDatabase(path = process.env.DB_PATH ?? "split-checkout.db"):
 
     CREATE INDEX IF NOT EXISTS idx_order_items_group ON order_items(order_group_id);
 
+    CREATE TABLE IF NOT EXISTS mandates (
+      id          TEXT PRIMARY KEY,
+      code        TEXT NOT NULL UNIQUE,
+      max_amount  REAL NOT NULL,
+      remaining   REAL NOT NULL,
+      currency    TEXT NOT NULL DEFAULT 'AUD',
+      cards       TEXT NOT NULL,
+      expires_at  TEXT NOT NULL,
+      status      TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','revoked')),
+      created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    );
+
     CREATE TABLE IF NOT EXISTS refunds (
       id                  TEXT PRIMARY KEY,
       slot_id             TEXT NOT NULL REFERENCES payment_slots(id),

@@ -10,11 +10,13 @@ import { OrderService } from "./orders/service.js";
 import { ordersRouter } from "./routes/orders.js";
 import { webhooksRouter } from "./routes/webhooks.js";
 import { mcpRouter } from "./routes/mcp.js";
+import { MandateStore } from "./orders/mandates.js";
 
 const config = loadConfig();
 const db = openDatabase();
 const airwallex = new AirwallexClient(config);
-const service = new OrderService(new OrderStore(db), airwallex);
+const mandates = new MandateStore(db);
+const service = new OrderService(new OrderStore(db), airwallex, mandates);
 
 const app = express();
 
@@ -23,14 +25,14 @@ const app = express();
 app.use("/api", webhooksRouter(service, config.airwallexWebhookSecret));
 
 // Remote MCP endpoint: agents connect to <host>/mcp with no install.
-app.use(mcpRouter(service));
+app.use(mcpRouter(service, mandates));
 
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
-app.use("/api", ordersRouter(service));
+app.use("/api", ordersRouter(service, mandates));
 
 // In production the server also serves the built frontend (single deploy).
 // WEB_DIST overrides the dev-layout default (compiled output nests deeper).

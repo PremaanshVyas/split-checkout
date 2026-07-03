@@ -28,10 +28,63 @@ import {
   SplitAmountError,
   type OrderService,
 } from "../orders/service.js";
+import { MandateError, type MandateStore } from "../orders/mandates.js";
 import { AirwallexApiError } from "../airwallex/client.js";
 
-export function ordersRouter(service: OrderService): Router {
+export function ordersRouter(service: OrderService, mandates: MandateStore): Router {
   const router = Router();
+
+  router.post("/mandates", (req, res, next) => {
+    try {
+      const { cards, max_amount, ttl_minutes } = req.body ?? {};
+      if (
+        !Array.isArray(cards) ||
+        !cards.every((c: unknown) => typeof c === "string") ||
+        typeof max_amount !== "number" ||
+        typeof ttl_minutes !== "number"
+      ) {
+        res.status(400).json({
+          error: "Body must be { cards: string[], max_amount: number, ttl_minutes: number }",
+        });
+        return;
+      }
+      res.status(201).json(mandates.create({ cards, maxAmount: max_amount, ttlMinutes: ttl_minutes }));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.get("/mandates/:code", (req, res, next) => {
+    try {
+      res.json(mandates.status(req.params.code));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post("/mandates/:code/revoke", (req, res, next) => {
+    try {
+      res.json(mandates.revoke(req.params.code));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  /** Agent checkout gated by a mandate: budget, expiry, and cards enforced server-side. */
+  router.post("/mandates/:code/checkout", async (req, res, next) => {
+    try {
+      const { items, splits } = req.body ?? {};
+      if (!isItemList(items) || (splits !== undefined && !isNumberList(splits))) {
+        res.status(400).json({
+          error: "Body must be { items: {sku, quantity?, color?}[], splits?: number[] }",
+        });
+        return;
+      }
+      res.status(201).json(await service.mandateCheckout(req.params.code, items, splits));
+    } catch (err) {
+      next(err);
+    }
+  });
 
   router.get("/products", (req, res) => {
     const { q, category, color, tag, sort } = req.query;
@@ -164,7 +217,11 @@ export function ordersRouter(service: OrderService): Router {
   router.use(
     (err: unknown, _req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => {
       if (res.headersSent) return next(err);
-      if (err instanceof SplitAmountError || err instanceof RefundError) {
+      if (
+        err instanceof SplitAmountError ||
+        err instanceof RefundError ||
+        err instanceof MandateError
+      ) {
         return res.status(400).json({ error: err.message });
       }
       if (err instanceof NotFoundError) {

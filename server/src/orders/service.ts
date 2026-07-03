@@ -4,6 +4,7 @@ import { AirwallexApiError } from "../airwallex/client.js";
 import type { PaymentIntent } from "../airwallex/types.js";
 import { getProduct, type Product } from "../catalog.js";
 import { friendlyDeclineMessage } from "./errorMessages.js";
+import type { MandateStore, MandateView } from "./mandates.js";
 import type { OrderStore } from "./store.js";
 import type { OrderGroup, PaymentSlot } from "./types.js";
 import { deriveGroupStatus } from "./types.js";
@@ -84,7 +85,52 @@ export class OrderService {
   constructor(
     private readonly store: OrderStore,
     private readonly airwallex: AirwallexClient,
+    private readonly mandates?: MandateStore,
   ) {}
+
+  /** Catalog total for a basket, in cents. Validation happens at order creation. */
+  cartTotalCents(items: OrderItemRequest[]): number {
+    let total = 0;
+    for (const item of items) {
+      const product = getProduct(item.sku);
+      if (!product) throw new SplitAmountError(`Unknown product: ${item.sku}`);
+      total += Math.round(product.price * 100) * (item.quantity ?? 1);
+    }
+    return total;
+  }
+
+  /**
+   * Mandate-backed agent checkout: the agent presents a mandate code, never
+   * a card. The mandate gates the spend (budget, expiry, revocation) before
+   * any intent is created, and the budget is decremented only when the
+   * order actually captures; a declined card costs nothing.
+   */
+  async mandateCheckout(
+    code: string,
+    items: OrderItemRequest[],
+    splits?: number[],
+  ): Promise<{ order: OrderView; mandate: MandateView }> {
+    if (!this.mandates) throw new Error("Mandates are not configured.");
+    const totalCents = this.cartTotalCents(items);
+    const { pans } = this.mandates.authorizeSpend(code, totalCents);
+
+    let parts = splits;
+    if (parts === undefined) {
+      // Even split across the mandate's cards, exact to the cent.
+      const base = Math.floor(totalCents / pans.length);
+      parts = pans.map((_, i) => (base + (i < totalCents - base * pans.length ? 1 : 0)) / 100);
+    } else if (parts.length !== pans.length) {
+      throw new SplitAmountError(
+        `This mandate is backed by ${pans.length} card(s); provide ${pans.length} split part(s) or omit splits.`,
+      );
+    }
+
+    const order = await this.agentCheckout(items, parts, pans.map((pan) => ({ pan })));
+    if (order.status === "captured") {
+      this.mandates.recordSpend(code, totalCents);
+    }
+    return { order, mandate: this.mandates.status(code) };
+  }
 
   /**
    * One order → N PaymentIntents, one per split amount. A single-card

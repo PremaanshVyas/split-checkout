@@ -74,6 +74,20 @@ The first question about split payment is "who gets the refund?". Answered concr
 
 Partial refunds allocate proportionally with integer-cent math (covered by unit tests), and the API rejects anything beyond the captured total.
 
+## Spending mandate enforcement
+
+A $600 mandate created in the store's Agent mode, then driven by an agent over MCP. Verbatim outcomes:
+
+| Agent attempt | Result |
+|---|---|
+| Barista Station Bundle, $1,950 | Refused: "This purchase (1950.00 AUD) exceeds the mandate's remaining budget of 600.00 AUD." No payment intent was created. |
+| Aurora 64 Grinder, $485 | Captured: $242.50 + $242.50 across the mandate's two cards. Remaining budget: $115.00. |
+| Gooseneck Kettle, $189 | Refused: "exceeds the mandate's remaining budget of 115.00 AUD." |
+
+Also unit-tested: a declined card costs the budget nothing, refunds do not restore budget, expired and revoked mandates are refused, and an exhausted mandate reports its state.
+
+![Agent mode: creating a spending mandate](docs/evidence/agent-mode.png)
+
 ## Transaction-type matrix
 
 Every documented sandbox card behavior, driven through the real UI (browser automation over the actual card-element iframes, one fresh order each). "Held" means the authorization landed and the capture-together gate would proceed. "Declined" means the slot stayed open for retry with the message shown.
