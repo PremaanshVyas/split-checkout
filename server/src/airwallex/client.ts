@@ -5,6 +5,7 @@ import type {
   CreatePaymentIntentParams,
   PaymentIntent,
   Refund,
+  TestCardDetails,
 } from "./types.js";
 
 /** Refresh the access token this long before its stated expiry. */
@@ -95,6 +96,24 @@ export class AirwallexClient {
   async capturePaymentIntent(intentId: string): Promise<PaymentIntent> {
     return this.request<PaymentIntent>("POST", `/api/v1/pa/payment_intents/${intentId}/capture`, {
       request_id: randomUUID(),
+    });
+  }
+
+  /**
+   * Server-side confirm with card details (Native API path), used ONLY by
+   * the agent-checkout demo with Airwallex's published test cards. A real
+   * integration must never pass raw PANs through its own server without
+   * PCI DSS scope; production agents would use tokenized credentials.
+   */
+  async confirmPaymentIntentWithCard(
+    intentId: string,
+    card: TestCardDetails,
+    autoCapture = false,
+  ): Promise<PaymentIntent> {
+    return this.request<PaymentIntent>("POST", `/api/v1/pa/payment_intents/${intentId}/confirm`, {
+      request_id: randomUUID(),
+      payment_method: { type: "card", card },
+      payment_method_options: { card: { auto_capture: autoCapture } },
     });
   }
 

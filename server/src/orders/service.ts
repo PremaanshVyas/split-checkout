@@ -276,6 +276,48 @@ export class OrderService {
     return this.view(orderGroupId);
   }
 
+  /**
+   * Agent-driven checkout: the whole split flow in one server-side call,
+   * for the MCP demo. Creates the order group, confirms each slot with
+   * its (published test) card via the Native API, verifies true statuses,
+   * and lets the same capture-together gate decide the outcome. Declines
+   * follow the exact semantics of the browser flow: the slot stays open,
+   * nothing is captured unless every card authorizes.
+   */
+  async agentCheckout(
+    sku: string,
+    splits: number[],
+    cards: { pan: string; name?: string }[],
+  ): Promise<OrderView> {
+    if (cards.length !== splits.length) {
+      throw new SplitAmountError("Provide exactly one card per split part.");
+    }
+    const order = await this.createSplitOrder(sku, splits);
+    for (const [i, slotView] of order.slots.entries()) {
+      const slot = this.requireSlot(order.id, slotView.id);
+      try {
+        await this.airwallex.confirmPaymentIntentWithCard(slot.airwallex_intent_id, {
+          number: cards[i]!.pan,
+          expiry_month: "12",
+          expiry_year: "2030",
+          cvc: "123",
+          name: cards[i]!.name ?? "Agent Checkout Demo",
+        });
+      } catch (err) {
+        if (err instanceof AirwallexApiError) {
+          this.store.updateSlotStatus(slot.id, "created", err.code);
+          continue; // decline: slot stays open, gate will not fire
+        }
+        throw err;
+      }
+      const intent = await this.airwallex.retrievePaymentIntent(slot.airwallex_intent_id);
+      this.applyIntentStatus(slot, intent);
+      this.recomputeGroupStatus(order.id);
+    }
+    await this.captureIfAllHeld(order.id);
+    return this.view(order.id);
+  }
+
   getOrder(orderGroupId: string): OrderView {
     return this.view(orderGroupId);
   }

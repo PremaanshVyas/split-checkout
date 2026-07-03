@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { PRODUCTS } from "../catalog.js";
+import { TEST_CARD_ALIASES, resolveTestCard } from "../orders/testCards.js";
 import {
   NotFoundError,
   RefundError,
@@ -53,6 +54,45 @@ export function ordersRouter(service: OrderService): Router {
   router.post("/orders/:orderId/slots/:slotId/refresh-secret", async (req, res, next) => {
     try {
       res.json(await service.refreshSlotSecret(req.params.orderId, req.params.slotId));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  /**
+   * Agent checkout (MCP demo): the full split flow in one call. Cards are
+   * aliases ("success", "decline", "insufficient_funds", ...) or published
+   * Airwallex test PANs; anything else is rejected before any API call.
+   */
+  router.post("/agent/checkout", async (req, res, next) => {
+    try {
+      const { sku, splits, cards } = req.body ?? {};
+      if (
+        typeof sku !== "string" ||
+        !Array.isArray(splits) ||
+        !splits.every((n: unknown) => typeof n === "number") ||
+        !Array.isArray(cards) ||
+        !cards.every((c: unknown) => typeof c === "string")
+      ) {
+        res.status(400).json({
+          error: "Body must be { sku: string, splits: number[], cards: string[] }",
+        });
+        return;
+      }
+      const resolved: { pan: string }[] = [];
+      for (const card of cards as string[]) {
+        const pan = resolveTestCard(card);
+        if (!pan) {
+          res.status(400).json({
+            error:
+              `"${card}" is not an accepted card. This demo only accepts Airwallex's published ` +
+              `sandbox test cards or the aliases: ${Object.keys(TEST_CARD_ALIASES).join(", ")}.`,
+          });
+          return;
+        }
+        resolved.push({ pan });
+      }
+      res.status(201).json(await service.agentCheckout(sku, splits, resolved));
     } catch (err) {
       next(err);
     }

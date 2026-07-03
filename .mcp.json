@@ -3,6 +3,10 @@
     "airwallex-developer": {
       "type": "http",
       "url": "https://mcp-demo.airwallex.com/developer"
+    },
+    "split-checkout": {
+      "command": "node",
+      "args": ["mcp/server.mjs"]
     }
   }
 }

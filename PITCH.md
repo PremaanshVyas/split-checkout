@@ -23,6 +23,10 @@ Visa's rules have explicitly supported split tender online since 2005, but imple
 
 That is exactly the shape of problem that belongs in the platform, not in every merchant's codebase.
 
+## The agentic preview
+
+Since Airi's roadmap is agents that transact on a shopper's behalf, the repo also ships an MCP server: an AI agent can browse the demo store and complete a purchase split across two cards, with the same all-or-nothing capture semantics, then refund it pro-rata. Ask Claude to "buy the espresso machine, $700 on the first card and $500 on the second" and it returns real sandbox PaymentIntent ids. As far as public evidence shows, nobody has demonstrated an agent paying across two funding sources before. Test cards only, by hard allowlist; production credential handling is deliberately out of scope and noted as Airi territory.
+
 ## The fit
 
 Airwallex is the right home for this feature three times over:

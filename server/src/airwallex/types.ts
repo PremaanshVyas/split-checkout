@@ -48,6 +48,14 @@ export interface CreatePaymentIntentParams {
   metadata?: Record<string, string>;
 }
 
+export interface TestCardDetails {
+  number: string;
+  expiry_month: string;
+  expiry_year: string;
+  cvc: string;
+  name?: string;
+}
+
 export interface Refund {
   id: string;
   payment_intent_id: string;

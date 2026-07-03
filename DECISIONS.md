@@ -176,3 +176,13 @@ Every non-obvious choice in this project, dated, with the alternatives considere
 - **The demo guide explains the magic amount.** The insufficient-funds card entry now states plainly that it declines only at exactly $80.51 and behaves like a normal card at any other amount.
 
 **Also audited and confirmed already safe:** double-submit guards on every mutating button; duplicate or out-of-order status deliveries (monotonic slot states); concurrent refund requests (the second exceeds Airwallex's per-intent refund cap and fails cleanly upstream); malformed split amounts (cent-exact server validation); capture failures mid-gate (retryable idempotently).
+
+---
+
+## 2026-07-03: Agentic checkout via MCP
+
+**Decision:** The repo ships an MCP server (`mcp/server.mjs`) that lets an AI agent complete the entire split purchase: browse products, authorize N cards, capture together, refund pro-rata, cancel and release holds. It drives a new `POST /api/agent/checkout` endpoint that confirms intents server-side through Airwallex's Native API, since an agent has no browser to mount a card element in.
+
+**The safety line, drawn hard:** the endpoint accepts only Airwallex's **published sandbox test cards**, checked against a hard-coded allowlist before any API call, with friendly aliases (`success`, `decline`, `insufficient_funds`) so agents never handle PANs at all. Passing raw card numbers through one's own server is a PCI DSS scope decision that this demo does not pretend to have made: a production agent flow would use tokenized credentials or delegated wallet authority instead, which is exactly the problem Airi's agentic-commerce roadmap describes. The demo exists to show the orchestration semantics an agent needs (all-or-nothing capture across funding sources), not to model credential handling.
+
+**Why build it:** Airwallex launched AgentOS two weeks ago and frames Airi as wallet infrastructure for agents that transact on a shopper's behalf with spend controls. An agent paying across two funding sources is the natural intersection of that roadmap and this repo, and as far as public evidence shows, nobody had demonstrated it. Verified end to end: an MCP client purchased the $1,200 product split 700/500 (both captured, real intent ids), took a $150 partial refund allocated 87.50/62.50 pro-rata, hit the decline path with nothing captured, and cancelled a failed order with holds released. Also verified: a non-test PAN is rejected before any upstream call.

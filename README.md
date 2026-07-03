@@ -116,6 +116,37 @@ Open http://localhost:5173 and pick any product. All test cards take any future 
 
 Sandbox note: amounts formatted `$8x.xx` are reserved by Airwallex to trigger error responses. The insufficient-funds preset uses that deliberately.
 
+## Agentic checkout (MCP)
+
+Airi's roadmap is agents that transact on a shopper's behalf. This repo includes a working preview of what that looks like with split payment: an MCP server that lets an AI agent browse the store and complete a purchase across multiple cards, with the same all-or-nothing capture semantics as the human checkout.
+
+Add it to Claude Code, Claude Desktop, or Cursor:
+
+```json
+{
+  "mcpServers": {
+    "split-checkout": {
+      "command": "node",
+      "args": ["mcp/server.mjs"]
+    }
+  }
+}
+```
+
+Then ask the agent something like *"buy the espresso machine, put $700 on the first card and $500 on the second"*. The agent gets five tools (`list_products`, `split_purchase`, `order_status`, `refund_order`, `cancel_order`) and returns real sandbox PaymentIntent ids. A sample run:
+
+```
+> split_purchase(sku: "aurora-ex-9", splits: [700, 500], cards: ["success", "success_mastercard"])
+{ "status": "captured", "cards": [
+    { "card": 1, "amount": 700, "status": "captured", "airwallex_intent_id": "int_hkdmjhgg5hk1o0opwwy" },
+    { "card": 2, "amount": 500, "status": "captured", "airwallex_intent_id": "int_hkdmjhgg5hk1o0ovqsl" } ] }
+
+> refund_order(order_id, amount: 150)
+refunded 150 AUD, allocated 87.50 / 62.50 across the cards (pro-rata to the 700/500 split)
+```
+
+Safety: the agent endpoint accepts **only Airwallex's published sandbox test cards** (or friendly aliases like `success` and `decline`); any other number is rejected before a single API call. Server-side card handling here is a sandbox demo device; a production agent flow would use tokenized credentials or wallet delegation (which is precisely Airi territory), never raw PANs. It points at the hosted demo by default; set `SPLIT_CHECKOUT_URL` to use a local instance.
+
 ## Honest limitations
 
 This is a demo of the core mechanism, not a finished product. Production would additionally need:
