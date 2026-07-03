@@ -2,11 +2,25 @@ import { randomUUID } from "node:crypto";
 import type { AirwallexClient } from "../airwallex/client.js";
 import { AirwallexApiError } from "../airwallex/client.js";
 import type { PaymentIntent } from "../airwallex/types.js";
-import { getProduct } from "../catalog.js";
+import { getProduct, type Product } from "../catalog.js";
 import { friendlyDeclineMessage } from "./errorMessages.js";
 import type { OrderStore } from "./store.js";
 import type { OrderGroup, PaymentSlot } from "./types.js";
 import { deriveGroupStatus } from "./types.js";
+
+export interface OrderItemRequest {
+  sku: string;
+  quantity?: number;
+  color?: string;
+}
+
+export interface OrderItemView {
+  sku: string;
+  name: string;
+  unit_price: number;
+  quantity: number;
+  color: string | null;
+}
 
 export interface SlotView {
   id: string;
@@ -26,6 +40,7 @@ export interface OrderView {
   currency: string;
   status: OrderGroup["status"];
   refunded_amount: number;
+  items: OrderItemView[];
   slots: SlotView[];
 }
 
@@ -76,42 +91,78 @@ export class OrderService {
    * purchase is simply a one-slot order sharing the same state machine and
    * capture gate, which is what makes decline recovery cheap: a failed
    * single-card order converts to a two-slot one. The client only
-   * proposes a product and how to split it; the total is always the
-   * server-side catalog price, and the parts must sum to it exactly.
+   * proposes skus, quantities, and a split; totals always come from the
+   * server-side catalog, and the parts must sum to the total exactly.
    */
-  async createSplitOrder(sku: string, splits: number[]): Promise<OrderView> {
-    const product = getProduct(sku);
-    if (!product) {
-      throw new SplitAmountError(`Unknown product: ${sku}`);
+  async createSplitOrder(items: OrderItemRequest[], splits: number[]): Promise<OrderView> {
+    if (items.length < 1) {
+      throw new SplitAmountError("An order needs at least one item.");
     }
+    let totalCents = 0;
+    const lines: { product: Product; quantity: number; color?: string }[] = [];
+    for (const item of items) {
+      const product = getProduct(item.sku);
+      if (!product) {
+        throw new SplitAmountError(`Unknown product: ${item.sku}`);
+      }
+      const quantity = item.quantity ?? 1;
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) {
+        throw new SplitAmountError(`Quantity for ${item.sku} must be a whole number from 1 to 10.`);
+      }
+      if (product.stock < quantity) {
+        throw new SplitAmountError(
+          product.stock === 0
+            ? `${product.name} is out of stock.`
+            : `Only ${product.stock} of ${product.name} in stock.`,
+        );
+      }
+      if (item.color !== undefined && !product.colors.includes(item.color)) {
+        throw new SplitAmountError(
+          `${product.name} comes in: ${product.colors.join(", ")} (not "${item.color}").`,
+        );
+      }
+      totalCents += Math.round(product.price * 100) * quantity;
+      lines.push({ product, quantity, ...(item.color !== undefined ? { color: item.color } : {}) });
+    }
+
     if (splits.length < 1) {
-      throw new SplitAmountError("An order needs at least one part.");
+      throw new SplitAmountError("An order needs at least one payment part.");
     }
     if (splits.some((amount) => !Number.isFinite(amount) || amount < 1)) {
       throw new SplitAmountError("Each part must be at least 1.00.");
     }
     // Work in cents to avoid float drift when validating the sum.
     const sumCents = splits.reduce((acc, amount) => acc + Math.round(amount * 100), 0);
-    if (sumCents !== Math.round(product.price * 100)) {
+    if (sumCents !== totalCents) {
       throw new SplitAmountError(
-        `Parts must sum to ${product.price.toFixed(2)} ${product.currency}.`,
+        `Parts must sum to ${(totalCents / 100).toFixed(2)} AUD (the cart total).`,
       );
     }
 
     const merchantOrderRef = `split-${randomUUID().slice(0, 8)}`;
     const group = this.store.createGroup({
       merchantOrderRef,
-      totalAmount: product.price,
-      currency: product.currency,
+      totalAmount: totalCents / 100,
+      currency: "AUD",
     });
+    for (const line of lines) {
+      this.store.addOrderItem({
+        orderGroupId: group.id,
+        sku: line.product.sku,
+        name: line.product.name,
+        unitPrice: line.product.price,
+        quantity: line.quantity,
+        ...(line.color !== undefined ? { color: line.color } : {}),
+      });
+    }
 
     const secrets = new Map<string, string>();
     for (const [index, amount] of splits.entries()) {
       const intent = await this.airwallex.createPaymentIntent({
         amount,
-        currency: product.currency,
+        currency: "AUD",
         merchantOrderId: `${merchantOrderRef}-card${index + 1}`,
-        metadata: { order_group_id: group.id, slot_index: String(index + 1), sku },
+        metadata: { order_group_id: group.id, slot_index: String(index + 1) },
       });
       const slot = this.store.addSlot({
         orderGroupId: group.id,
@@ -285,14 +336,14 @@ export class OrderService {
    * nothing is captured unless every card authorizes.
    */
   async agentCheckout(
-    sku: string,
+    items: OrderItemRequest[],
     splits: number[],
     cards: { pan: string; name?: string }[],
   ): Promise<OrderView> {
     if (cards.length !== splits.length) {
       throw new SplitAmountError("Provide exactly one card per split part.");
     }
-    const order = await this.createSplitOrder(sku, splits);
+    const order = await this.createSplitOrder(items, splits);
     for (const [i, slotView] of order.slots.entries()) {
       const slot = this.requireSlot(order.id, slotView.id);
       try {
@@ -378,6 +429,13 @@ export class OrderService {
       currency: group.currency,
       status: group.status,
       refunded_amount: slotViews.reduce((acc, s) => acc + s.refunded_amount, 0),
+      items: this.store.getItemsForGroup(orderGroupId).map((item) => ({
+        sku: item.sku,
+        name: item.name,
+        unit_price: item.unit_price,
+        quantity: item.quantity,
+        color: item.color,
+      })),
       slots: slotViews,
     };
   }

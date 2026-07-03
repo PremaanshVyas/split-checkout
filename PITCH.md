@@ -25,7 +25,7 @@ That is exactly the shape of problem that belongs in the platform, not in every 
 
 ## The agentic preview
 
-Since Airi's roadmap is agents that transact on a shopper's behalf, the repo also ships an MCP server: an AI agent can browse the demo store and complete a purchase split across two cards, with the same all-or-nothing capture semantics, then refund it pro-rata. Ask Claude to "buy the espresso machine, $700 on the first card and $500 on the second" and it returns real sandbox PaymentIntent ids. As far as public evidence shows, nobody has demonstrated an agent paying across two funding sources before. Test cards only, by hard allowlist; production credential handling is deliberately out of scope and noted as Airi territory.
+Since Airi's roadmap is agents that transact on a shopper's behalf, the demo also hosts a remote MCP server at https://split-checkout-demo.fly.dev/mcp. Paste that URL into Claude or Cursor and an agent can search a sixteen-product catalog by category, color, price, and stock, assemble a basket, and complete the purchase split across multiple cards, with the same all-or-nothing capture semantics, then refund it pro-rata. No install, no clone. The tool shapes follow the conventions Shopify's storefront MCP established, and the payment layer covers what none of the emerging agentic-commerce standards do: OpenAI/Stripe's ACP and Google's UCP/AP2 all assume one funding source per checkout. An agent paying across two funding sources appears to be genuinely undemonstrated territory. Test cards only, by hard allowlist; production credential handling is deliberately out of scope and noted as Airi territory.
 
 ## The fit
 

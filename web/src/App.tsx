@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { api } from "./api";
-import type { OrderView, Product } from "./types";
+import { api, type OrderItemRequest } from "./api";
+import type { CartLine, OrderView, Product } from "./types";
 import { ProductGrid } from "./components/ProductGrid";
+import { ProductDetail } from "./components/ProductDetail";
+import { CartView } from "./components/CartView";
 import { SplitEditor } from "./components/SplitEditor";
 import { CardStep } from "./components/CardStep";
 import { StatusChip } from "./components/StatusChip";
@@ -9,81 +11,67 @@ import { SuccessScreen } from "./components/SuccessScreen";
 import { DemoGuide } from "./components/DemoGuide";
 import "./App.css";
 
-type Phase = "shop" | "split" | "checkout";
+type Phase = "shop" | "product" | "cart" | "pay" | "checkout";
 
-const fmt = (n: number, currency: string) =>
+const fmt = (n: number, currency = "AUD") =>
   new Intl.NumberFormat("en-AU", { style: "currency", currency }).format(n);
 
 /**
- * Checkout survives a browser refresh: order id, product sku, and the
- * client_secrets (which only exist at order creation) are kept in
- * sessionStorage, and the order's true state is re-fetched on load.
- * Session-scoped on purpose: closing the tab abandons the checkout and
- * the server-side sweep releases the holds.
+ * Checkout survives a browser refresh: order id and the client_secrets
+ * (which only exist at order creation) are kept in sessionStorage, and
+ * the order's true state is re-fetched on load. Session-scoped on
+ * purpose: closing the tab abandons the checkout and the server-side
+ * sweep releases the holds. The cart persists the same way.
  */
 const SESSION_KEY = "split-checkout-session";
+const CART_KEY = "split-checkout-cart";
 
 interface SavedSession {
   orderId: string;
-  sku: string;
   secrets: Record<string, string>;
 }
 
-function loadSession(): SavedSession | null {
+function loadJson<T>(key: string): T | null {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as SavedSession) : null;
+    const raw = sessionStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
   } catch {
     return null;
   }
 }
 
 export default function App() {
-  const [products, setProducts] = useState<Product[] | null>(null);
-  const [product, setProduct] = useState<Product | null>(null);
   const [phase, setPhase] = useState<Phase>("shop");
+  const [product, setProduct] = useState<Product | null>(null);
+  const [cart, setCart] = useState<CartLine[]>(() => loadJson<CartLine[]>(CART_KEY) ?? []);
+  // The lines being paid for right now (buy-now bypasses the cart).
+  const [checkoutLines, setCheckoutLines] = useState<CartLine[]>([]);
   const [order, setOrder] = useState<OrderView | null>(null);
-  // client_secrets only arrive on order creation; later verify responses
-  // deliberately omit them, so they are kept here for the flow's lifetime.
   const [secrets, setSecrets] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
-  // Set when a single-card payment declined and we steer into the split flow.
   const [recoveryHint, setRecoveryHint] = useState(false);
 
   useEffect(() => {
-    (async () => {
-      let loaded: Product[];
-      try {
-        loaded = await api.getProducts();
-      } catch {
-        setFatalError("Could not reach the server.");
-        return;
-      }
-      setProducts(loaded);
+    sessionStorage.setItem(CART_KEY, JSON.stringify(cart));
+  }, [cart]);
 
-      // Restore an in-flight checkout after a refresh.
-      const saved = loadSession();
-      if (!saved) return;
-      const savedProduct = loaded.find((p) => p.sku === saved.sku);
-      if (!savedProduct) {
-        sessionStorage.removeItem(SESSION_KEY);
-        return;
-      }
-      try {
-        const restored = await api.getOrder(saved.orderId);
+  // Restore an in-flight checkout after a refresh.
+  useEffect(() => {
+    const saved = loadJson<SavedSession>(SESSION_KEY);
+    if (!saved) return;
+    api
+      .getOrder(saved.orderId)
+      .then((restored) => {
         if (restored.status === "failed") {
           sessionStorage.removeItem(SESSION_KEY);
           return;
         }
-        setProduct(savedProduct);
         setSecrets(saved.secrets);
         setOrder(restored);
         setPhase("checkout");
-      } catch {
-        sessionStorage.removeItem(SESSION_KEY);
-      }
-    })();
+      })
+      .catch(() => sessionStorage.removeItem(SESSION_KEY));
   }, []);
 
   const activeSlotIndex = useMemo(() => {
@@ -91,6 +79,9 @@ export default function App() {
     return order.slots.findIndex((s) => s.status === "created");
   }, [order]);
   const activeSlot = activeSlotIndex >= 0 ? order?.slots[activeSlotIndex] : undefined;
+
+  const cartCount = cart.reduce((acc, l) => acc + l.quantity, 0);
+  const checkoutTotal = checkoutLines.reduce((acc, l) => acc + l.price * l.quantity, 0);
 
   function backToShop() {
     sessionStorage.removeItem(SESSION_KEY);
@@ -102,11 +93,53 @@ export default function App() {
     setRecoveryHint(false);
   }
 
-  /**
-   * Decline recovery: release the failed single-card order's state and
-   * re-enter the split flow with the shopper's context intact. The
-   * abandoned intent is cancelled server-side (nothing was charged).
-   */
+  function addToCart(p: Product, quantity: number, color: string) {
+    setCart((prev) => {
+      const existing = prev.findIndex((l) => l.sku === p.sku && l.color === color);
+      if (existing >= 0) {
+        return prev.map((l, i) =>
+          i === existing ? { ...l, quantity: Math.min(10, l.quantity + quantity) } : l,
+        );
+      }
+      return [...prev, { sku: p.sku, name: p.name, price: p.price, quantity, color, art: p.art }];
+    });
+    setPhase("cart");
+  }
+
+  function toItems(lines: CartLine[]): OrderItemRequest[] {
+    return lines.map((l) => ({
+      sku: l.sku,
+      quantity: l.quantity,
+      ...(l.color ? { color: l.color } : {}),
+    }));
+  }
+
+  async function startOrder(splits: number[]) {
+    if (checkoutLines.length === 0) return;
+    setBusy(true);
+    setFatalError(null);
+    try {
+      const created = await api.createOrder(toItems(checkoutLines), splits);
+      const secretMap: Record<string, string> = {};
+      for (const slot of created.slots) {
+        if (slot.client_secret) secretMap[slot.id] = slot.client_secret;
+      }
+      setSecrets(secretMap);
+      setOrder(created);
+      setRecoveryHint(false);
+      setPhase("checkout");
+      // Paying for the cart clears it; a buy-now leaves the cart alone.
+      if (checkoutLines === cart || JSON.stringify(checkoutLines) === JSON.stringify(cart)) {
+        setCart([]);
+      }
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ orderId: created.id, secrets: secretMap }));
+    } catch (err) {
+      setFatalError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function recoverWithSplit() {
     if (!order) return;
     setBusy(true);
@@ -116,32 +149,7 @@ export default function App() {
       setSecrets({});
       setFatalError(null);
       setRecoveryHint(true);
-      setPhase("split");
-    } catch (err) {
-      setFatalError((err as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function startOrder(splits: number[]) {
-    if (!product) return;
-    setBusy(true);
-    setFatalError(null);
-    try {
-      const created = await api.createOrder(product.sku, splits);
-      const secretMap: Record<string, string> = {};
-      for (const slot of created.slots) {
-        if (slot.client_secret) secretMap[slot.id] = slot.client_secret;
-      }
-      setSecrets(secretMap);
-      setOrder(created);
-      setRecoveryHint(false);
-      setPhase("checkout");
-      sessionStorage.setItem(
-        SESSION_KEY,
-        JSON.stringify({ orderId: created.id, sku: product.sku, secrets: secretMap }),
-      );
+      setPhase("pay");
     } catch (err) {
       setFatalError((err as Error).message);
     } finally {
@@ -154,7 +162,6 @@ export default function App() {
     try {
       const updated = await api.verifySlot(order.id, slotId, clientErrorCode);
       setOrder(updated);
-      // An expired client_secret can be refreshed without recreating the intent.
       const slot = updated.slots.find((s) => s.id === slotId);
       if (slot?.status === "created" && slot.last_error_code === "expired") {
         const { client_secret } = await api.refreshSecret(order.id, slotId);
@@ -171,7 +178,12 @@ export default function App() {
         <button className="brand" onClick={backToShop}>
           AURORA &amp; CO.
         </button>
-        <span className="muted small">Demo store · Airwallex sandbox · no real money</span>
+        <div className="masthead-right">
+          <span className="muted small">Demo store · Airwallex sandbox · no real money</span>
+          <button className="cart-button" onClick={() => setPhase("cart")} aria-label="Cart">
+            🛒{cartCount > 0 && <span className="cart-count">{cartCount}</span>}
+          </button>
+        </div>
       </header>
 
       {/* 3DS bank-verification challenges render here as a modal (see App.css). */}
@@ -179,54 +191,84 @@ export default function App() {
 
       {fatalError && !order && <p className="error">{fatalError}</p>}
 
-      {phase === "shop" &&
-        (products ? (
-          <ProductGrid
-            products={products}
-            onSelect={(p) => {
-              setProduct(p);
-              setPhase("split");
-            }}
-          />
-        ) : (
-          !fatalError && <p className="muted">Loading…</p>
-        ))}
+      {phase === "shop" && (
+        <ProductGrid
+          onSelect={(p) => {
+            setProduct(p);
+            setPhase("product");
+          }}
+        />
+      )}
 
-      {phase === "split" && product && (
+      {phase === "product" && product && (
+        <ProductDetail
+          product={product}
+          onBack={() => setPhase("shop")}
+          onAddToCart={addToCart}
+          onBuyNow={(p, quantity, color) => {
+            setCheckoutLines([
+              { sku: p.sku, name: p.name, price: p.price, quantity, color, art: p.art },
+            ]);
+            setRecoveryHint(false);
+            setPhase("pay");
+          }}
+        />
+      )}
+
+      {phase === "cart" && (
+        <CartView
+          cart={cart}
+          onBack={() => setPhase("shop")}
+          onUpdateQty={(i, quantity) =>
+            setCart((prev) => prev.map((l, idx) => (idx === i ? { ...l, quantity } : l)))
+          }
+          onRemove={(i) => setCart((prev) => prev.filter((_, idx) => idx !== i))}
+          onCheckout={() => {
+            setCheckoutLines(cart);
+            setRecoveryHint(false);
+            setPhase("pay");
+          }}
+        />
+      )}
+
+      {phase === "pay" && checkoutLines.length > 0 && (
         <div className="split-page">
-          <button className="back-link" onClick={backToShop}>
-            ← Back to store
+          <button className="back-link" onClick={() => setPhase(checkoutLines === cart ? "cart" : "shop")}>
+            ← Back
           </button>
-          <div className="split-product-summary">
-            <div className="split-product-visual" aria-hidden>
-              {product.art}
-            </div>
-            <div>
-              <h1>{product.name}</h1>
-              <p className="muted">{product.description}</p>
-              <p className="price">{fmt(product.price, product.currency)}</p>
-            </div>
+          <div className="pay-summary">
+            <h1>Checkout</h1>
+            <ul className="pay-lines">
+              {checkoutLines.map((l) => (
+                <li key={`${l.sku}-${l.color ?? ""}`}>
+                  <span aria-hidden>{l.art}</span> {l.quantity} × {l.name}
+                  {l.color ? ` (${l.color})` : ""}
+                  <strong>{fmt(l.price * l.quantity)}</strong>
+                </li>
+              ))}
+            </ul>
+            <p className="price">Total {fmt(checkoutTotal)}</p>
           </div>
           {recoveryHint && (
             <p className="recovery-hint" role="status">
-              Your card was declined, but the order isn't lost. Try splitting it across two
-              cards below. Nothing has been charged.
+              Your card was declined, but the order isn't lost. Try splitting it across two cards
+              below. Nothing has been charged.
             </p>
           )}
           {!recoveryHint && (
             <div className="pay-single">
-              <button className="primary" disabled={busy} onClick={() => startOrder([product.price])}>
-                {busy ? "Setting up…" : `Pay with one card (${fmt(product.price, product.currency)})`}
+              <button className="primary" disabled={busy} onClick={() => startOrder([checkoutTotal])}>
+                {busy ? "Setting up…" : `Pay with one card (${fmt(checkoutTotal)})`}
               </button>
               <p className="muted small pay-divider">or split it across two cards</p>
             </div>
           )}
-          <SplitEditor product={product} busy={busy} onConfirm={startOrder} />
+          <SplitEditor total={checkoutTotal} currency="AUD" busy={busy} onConfirm={startOrder} />
           {fatalError && <p className="error">{fatalError}</p>}
         </div>
       )}
 
-      {phase === "checkout" && order && product && (
+      {phase === "checkout" && order && (
         <div className="checkout-grid">
           <div className="checkout-main">
             {order.status === "captured" ? (
@@ -239,9 +281,7 @@ export default function App() {
             ) : order.status === "failed" ? (
               <section className="card-step">
                 <h2>Order cancelled</h2>
-                <p className="muted">
-                  All holds on your cards have been released. Nothing was charged.
-                </p>
+                <p className="muted">All holds on your cards have been released. Nothing was charged.</p>
                 <button className="primary" onClick={backToShop}>
                   Back to store
                 </button>
@@ -261,8 +301,8 @@ export default function App() {
                   <aside className="recovery-offer">
                     <strong>Don't lose the order. Split it across two cards.</strong>
                     <p className="muted small">
-                      Pay part on this card and the rest on another. Nothing is charged unless
-                      both cards authorize.
+                      Pay part on this card and the rest on another. Nothing is charged unless both
+                      cards authorize.
                     </p>
                     <button className="primary" disabled={busy} onClick={recoverWithSplit}>
                       Split across two cards
@@ -282,9 +322,15 @@ export default function App() {
           <aside className="sidebar">
             <div className="order-summary">
               <h3>Order</h3>
+              <ul className="order-items">
+                {order.items.map((item) => (
+                  <li key={`${item.sku}-${item.color ?? ""}`}>
+                    {item.quantity} × {item.name}
+                    {item.color ? ` (${item.color})` : ""}
+                  </li>
+                ))}
+              </ul>
               <p>
-                {product.name}
-                <br />
                 <strong>{fmt(order.total_amount, order.currency)}</strong>
               </p>
               <ol className="slot-list">
@@ -328,8 +374,9 @@ export default function App() {
       )}
 
       <footer className="footer muted small">
-        Independent demo built on Airwallex's public sandbox API, not an Airwallex product. No
-        real cards, no real money.
+        Independent demo built on Airwallex's public sandbox API, not an Airwallex product. No real
+        cards, no real money. Agents can shop here too:{" "}
+        <code>{`${window.location.origin}/mcp`}</code>
       </footer>
     </main>
   );

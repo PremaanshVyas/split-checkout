@@ -9,6 +9,7 @@ import { OrderStore } from "./orders/store.js";
 import { OrderService } from "./orders/service.js";
 import { ordersRouter } from "./routes/orders.js";
 import { webhooksRouter } from "./routes/webhooks.js";
+import { mcpRouter } from "./routes/mcp.js";
 
 const config = loadConfig();
 const db = openDatabase();
@@ -20,6 +21,9 @@ const app = express();
 // Webhooks mount before the JSON parser: signature verification runs on
 // the raw request body.
 app.use("/api", webhooksRouter(service, config.airwallexWebhookSecret));
+
+// Remote MCP endpoint: agents connect to <host>/mcp with no install.
+app.use(mcpRouter(service));
 
 app.use(express.json());
 

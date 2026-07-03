@@ -1,11 +1,53 @@
 export interface Product {
   sku: string;
   name: string;
+  category: string;
   tagline: string;
   description: string;
   price: number;
   currency: string;
+  colors: string[];
+  rating: number;
+  reviews: number;
+  stock: number;
+  tags: string[];
   art: string;
+}
+
+export interface SearchResult {
+  products: Product[];
+  total: number;
+  facets: {
+    categories: Record<string, number>;
+    colors: Record<string, number>;
+    price_range: { min: number; max: number } | null;
+  };
+}
+
+export interface SearchParams {
+  q?: string;
+  category?: string;
+  color?: string;
+  max_price?: number;
+  in_stock?: boolean;
+  sort?: string;
+}
+
+export interface CartLine {
+  sku: string;
+  name: string;
+  price: number;
+  quantity: number;
+  color?: string;
+  art: string;
+}
+
+export interface OrderItemView {
+  sku: string;
+  name: string;
+  unit_price: number;
+  quantity: number;
+  color: string | null;
 }
 
 export type SlotStatus = "created" | "authorized" | "captured" | "failed" | "cancelled";
@@ -28,5 +70,6 @@ export interface OrderView {
   currency: string;
   status: "pending" | "partially_authorized" | "authorized" | "captured" | "failed";
   refunded_amount: number;
+  items: OrderItemView[];
   slots: SlotView[];
 }

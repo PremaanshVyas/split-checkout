@@ -1,4 +1,4 @@
-import type { OrderView, Product } from "./types";
+import type { OrderView, Product, SearchParams, SearchResult } from "./types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, init);
@@ -9,16 +9,34 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+export interface OrderItemRequest {
+  sku: string;
+  quantity?: number;
+  color?: string;
+}
+
 export const api = {
-  getProducts: () => request<Product[]>("/api/products"),
+  searchProducts: (params: SearchParams = {}) => {
+    const qs = new URLSearchParams();
+    if (params.q) qs.set("q", params.q);
+    if (params.category) qs.set("category", params.category);
+    if (params.color) qs.set("color", params.color);
+    if (params.max_price !== undefined) qs.set("max_price", String(params.max_price));
+    if (params.in_stock) qs.set("in_stock", "true");
+    if (params.sort) qs.set("sort", params.sort);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return request<SearchResult>(`/api/products${suffix}`);
+  },
+
+  getProduct: (sku: string) => request<Product>(`/api/products/${sku}`),
 
   getOrder: (orderId: string) => request<OrderView>(`/api/orders/${orderId}`),
 
-  createOrder: (sku: string, splits: number[]) =>
+  createOrder: (items: OrderItemRequest[], splits: number[]) =>
     request<OrderView>("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sku, splits }),
+      body: JSON.stringify({ items, splits }),
     }),
 
   verifySlot: (orderId: string, slotId: string, clientErrorCode?: string) =>

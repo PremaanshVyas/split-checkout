@@ -16,6 +16,17 @@ export interface OrderGroup {
   created_at: string;
 }
 
+export interface OrderItem {
+  id: string;
+  order_group_id: string;
+  sku: string;
+  name: string;
+  unit_price: number;
+  quantity: number;
+  color: string | null;
+  created_at: string;
+}
+
 export interface PaymentSlot {
   id: string;
   order_group_id: string;

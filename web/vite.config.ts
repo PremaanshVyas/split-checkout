@@ -9,6 +9,8 @@ export default defineConfig({
       // All API calls go to the Express server; the browser never talks to
       // Airwallex's REST API directly (only to the Airwallex.js element SDK).
       '/api': 'http://localhost:3001',
+      // Remote MCP endpoint lives on the server too.
+      '/mcp': 'http://localhost:3001',
     },
   },
 })

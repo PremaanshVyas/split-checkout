@@ -118,25 +118,36 @@ Sandbox note: amounts formatted `$8x.xx` are reserved by Airwallex to trigger er
 
 ## Agentic checkout (MCP)
 
-Airi's roadmap is agents that transact on a shopper's behalf. This repo includes a working preview of what that looks like with split payment: an MCP server that lets an AI agent browse the store and complete a purchase across multiple cards, with the same all-or-nothing capture semantics as the human checkout.
+Airi's roadmap is agents that transact on a shopper's behalf. This repo includes a working preview of what that looks like with split payment: the demo hosts a **remote MCP server**, so an AI agent can browse the catalog, filter by category, color, price, and stock, assemble a multi-item basket, and complete the purchase across multiple cards, with the same all-or-nothing capture semantics as the human checkout.
 
-Add it to Claude Code, Claude Desktop, or Cursor:
+Zero install. Add the URL to Claude Code, Claude Desktop, or Cursor:
 
 ```json
 {
   "mcpServers": {
     "split-checkout": {
-      "command": "node",
-      "args": ["mcp/server.mjs"]
+      "type": "http",
+      "url": "https://split-checkout-demo.fly.dev/mcp"
     }
   }
 }
 ```
 
-Then ask the agent something like *"buy the espresso machine, put $700 on the first card and $500 on the second"*. The agent gets five tools (`list_products`, `split_purchase`, `order_status`, `refund_order`, `cancel_order`) and returns real sandbox PaymentIntent ids. A sample run:
+Then talk to it like a shopper: *"find me a grinder under $500 in matte black, and split it evenly across two cards"*. The tools:
+
+| Tool | What it does |
+|---|---|
+| `search_catalog` | Free-text plus filters (category, color, price range, in-stock, sort) with facet counts |
+| `get_product` | Full detail for one sku, including color options and stock |
+| `split_purchase` | Buy a basket of items across N cards; omit `splits` for an even division; capture is all-or-nothing |
+| `order_status` | Items, per-card slots, refunds for an order |
+| `refund_order` | Full or partial refund, allocated pro-rata across the cards to the cent |
+| `cancel_order` | Reverse every hold on an uncaptured order |
+
+A sample run (real sandbox PaymentIntent ids):
 
 ```
-> split_purchase(sku: "aurora-ex-9", splits: [700, 500], cards: ["success", "success_mastercard"])
+> split_purchase(items: [{sku: "aurora-ex-9"}], splits: [700, 500], cards: ["success", "success_mastercard"])
 { "status": "captured", "cards": [
     { "card": 1, "amount": 700, "status": "captured", "airwallex_intent_id": "int_hkdmjhgg5hk1o0opwwy" },
     { "card": 2, "amount": 500, "status": "captured", "airwallex_intent_id": "int_hkdmjhgg5hk1o0ovqsl" } ] }
@@ -145,7 +156,9 @@ Then ask the agent something like *"buy the espresso machine, put $700 on the fi
 refunded 150 AUD, allocated 87.50 / 62.50 across the cards (pro-rata to the 700/500 split)
 ```
 
-Safety: the agent endpoint accepts **only Airwallex's published sandbox test cards** (or friendly aliases like `success` and `decline`); any other number is rejected before a single API call. Server-side card handling here is a sandbox demo device; a production agent flow would use tokenized credentials or wallet delegation (which is precisely Airi territory), never raw PANs. It points at the hosted demo by default; set `SPLIT_CHECKOUT_URL` to use a local instance.
+The tool shapes follow the conventions the field is converging on (Shopify's storefront MCP `search_catalog`/`get_product` pattern; open browse tools with the sensitive step guarded), and the payment layer is the part none of the emerging agentic-commerce standards cover: OpenAI/Stripe's ACP delegates a single-instrument token per checkout, and Google's UCP/AP2 mandates assume one funding source per payment. Splitting one agent purchase across multiple funding sources appears to be genuinely uncharted, which is exactly the Airi-shaped gap this demonstrates.
+
+Safety: the purchase tool accepts **only Airwallex's published sandbox test cards** (or friendly aliases like `success` and `decline`); any other number is rejected before a single API call. Server-side card handling here is a sandbox demo device; a production agent flow would use tokenized credentials or wallet delegation (which is precisely Airi territory), never raw PANs.
 
 ## Honest limitations
 

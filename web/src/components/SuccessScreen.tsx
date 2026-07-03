@@ -34,10 +34,21 @@ export function SuccessScreen({
       <h2>{refunded ? "Order refunded" : "Payment complete 🎉"}</h2>
       <p className="muted">
         {refunded
-          ? "The refund was allocated across both cards in proportion to what each one paid."
-          : "One order, two charges, captured together."}{" "}
+          ? "The refund was allocated across the cards in proportion to what each one paid."
+          : order.slots.length > 1
+            ? "One order, multiple charges, captured together."
+            : "Payment captured."}{" "}
         Order ref <code>{order.merchant_order_ref}</code>.
       </p>
+
+      <ul className="order-items order-items-success">
+        {order.items.map((item) => (
+          <li key={`${item.sku}-${item.color ?? ""}`}>
+            {item.quantity} × {item.name}
+            {item.color ? ` (${item.color})` : ""}
+          </li>
+        ))}
+      </ul>
 
       <div className="money-flow">
         {order.slots.map((slot, i) => (

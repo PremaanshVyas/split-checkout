@@ -5,8 +5,8 @@
       "url": "https://mcp-demo.airwallex.com/developer"
     },
     "split-checkout": {
-      "command": "node",
-      "args": ["mcp/server.mjs"]
+      "type": "http",
+      "url": "https://split-checkout-demo.fly.dev/mcp"
     }
   }
 }

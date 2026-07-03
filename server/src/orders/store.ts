@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Database } from "better-sqlite3";
-import type { OrderGroup, OrderGroupStatus, PaymentSlot, SlotStatus } from "./types.js";
+import type { OrderGroup, OrderGroupStatus, OrderItem, PaymentSlot, SlotStatus } from "./types.js";
 
 export class OrderStore {
   constructor(private readonly db: Database) {}
@@ -76,6 +76,36 @@ export class OrderStore {
 
   updateGroupStatus(id: string, status: OrderGroupStatus): void {
     this.db.prepare(`UPDATE order_groups SET status = ? WHERE id = ?`).run(status, id);
+  }
+
+  addOrderItem(params: {
+    orderGroupId: string;
+    sku: string;
+    name: string;
+    unitPrice: number;
+    quantity: number;
+    color?: string;
+  }): void {
+    this.db
+      .prepare(
+        `INSERT INTO order_items (id, order_group_id, sku, name, unit_price, quantity, color)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        randomUUID(),
+        params.orderGroupId,
+        params.sku,
+        params.name,
+        params.unitPrice,
+        params.quantity,
+        params.color ?? null,
+      );
+  }
+
+  getItemsForGroup(orderGroupId: string): OrderItem[] {
+    return this.db
+      .prepare(`SELECT * FROM order_items WHERE order_group_id = ? ORDER BY rowid`)
+      .all(orderGroupId) as OrderItem[];
   }
 
   addRefund(params: {

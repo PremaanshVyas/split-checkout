@@ -1,6 +1,27 @@
 import { Router } from "express";
-import { PRODUCTS } from "../catalog.js";
+import { getProduct, searchProducts, type SearchParams } from "../catalog.js";
 import { TEST_CARD_ALIASES, resolveTestCard } from "../orders/testCards.js";
+
+function isNumberList(v: unknown): v is number[] {
+  return Array.isArray(v) && v.every((n) => typeof n === "number");
+}
+
+function isItemList(v: unknown): v is { sku: string; quantity?: number; color?: string }[] {
+  return (
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.every(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        typeof (item as Record<string, unknown>).sku === "string" &&
+        ((item as Record<string, unknown>).quantity === undefined ||
+          typeof (item as Record<string, unknown>).quantity === "number") &&
+        ((item as Record<string, unknown>).color === undefined ||
+          typeof (item as Record<string, unknown>).color === "string"),
+    )
+  );
+}
 import {
   NotFoundError,
   RefundError,
@@ -12,22 +33,43 @@ import { AirwallexApiError } from "../airwallex/client.js";
 export function ordersRouter(service: OrderService): Router {
   const router = Router();
 
-  router.get("/products", (_req, res) => {
-    res.json(PRODUCTS);
+  router.get("/products", (req, res) => {
+    const { q, category, color, tag, sort } = req.query;
+    const num = (v: unknown) => (typeof v === "string" && v !== "" ? Number(v) : undefined);
+    res.json(
+      searchProducts({
+        ...(typeof q === "string" ? { q } : {}),
+        ...(typeof category === "string" ? { category } : {}),
+        ...(typeof color === "string" ? { color } : {}),
+        ...(typeof tag === "string" ? { tag } : {}),
+        ...(num(req.query.min_price) !== undefined ? { minPrice: num(req.query.min_price)! } : {}),
+        ...(num(req.query.max_price) !== undefined ? { maxPrice: num(req.query.max_price)! } : {}),
+        ...(req.query.in_stock === "true" ? { inStock: true } : {}),
+        ...(typeof sort === "string" ? { sort: sort as NonNullable<SearchParams["sort"]> } : {}),
+      }),
+    );
+  });
+
+  router.get("/products/:sku", (req, res) => {
+    const product = getProduct(req.params.sku);
+    if (!product) {
+      res.status(404).json({ error: `No product with sku ${req.params.sku}` });
+      return;
+    }
+    res.json(product);
   });
 
   router.post("/orders", async (req, res, next) => {
     try {
-      const { sku, splits } = req.body ?? {};
-      if (
-        typeof sku !== "string" ||
-        !Array.isArray(splits) ||
-        !splits.every((n: unknown) => typeof n === "number")
-      ) {
-        res.status(400).json({ error: "Body must be { sku: string, splits: number[] }" });
+      const { items, splits } = req.body ?? {};
+      if (!isItemList(items) || !isNumberList(splits)) {
+        res.status(400).json({
+          error:
+            "Body must be { items: {sku, quantity?, color?}[], splits: number[] }",
+        });
         return;
       }
-      res.status(201).json(await service.createSplitOrder(sku, splits));
+      res.status(201).json(await service.createSplitOrder(items, splits));
     } catch (err) {
       next(err);
     }
@@ -66,16 +108,16 @@ export function ordersRouter(service: OrderService): Router {
    */
   router.post("/agent/checkout", async (req, res, next) => {
     try {
-      const { sku, splits, cards } = req.body ?? {};
+      const { items, splits, cards } = req.body ?? {};
       if (
-        typeof sku !== "string" ||
-        !Array.isArray(splits) ||
-        !splits.every((n: unknown) => typeof n === "number") ||
+        !isItemList(items) ||
+        !isNumberList(splits) ||
         !Array.isArray(cards) ||
         !cards.every((c: unknown) => typeof c === "string")
       ) {
         res.status(400).json({
-          error: "Body must be { sku: string, splits: number[], cards: string[] }",
+          error:
+            "Body must be { items: {sku, quantity?, color?}[], splits: number[], cards: string[] }",
         });
         return;
       }
@@ -92,7 +134,7 @@ export function ordersRouter(service: OrderService): Router {
         }
         resolved.push({ pan });
       }
-      res.status(201).json(await service.agentCheckout(sku, splits, resolved));
+      res.status(201).json(await service.agentCheckout(items, splits, resolved));
     } catch (err) {
       next(err);
     }

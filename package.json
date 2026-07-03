@@ -5,8 +5,7 @@
   "description": "Pay for one order with two cards: multi-card payment orchestration on Airwallex's sandbox API",
   "workspaces": [
     "server",
-    "web",
-    "mcp"
+    "web"
   ],
   "scripts": {
     "dev": "npm run dev --workspace=server & npm run dev --workspace=web & wait",
