@@ -15,6 +15,9 @@ import { TEST_CARD_ALIASES, resolveTestCard } from "../orders/testCards.js";
  * open while the payment tool is hard-gated to published test cards).
  */
 
+/** Absolute base for image links handed to agents. */
+const PUBLIC_URL = (process.env.PUBLIC_URL ?? "https://split-checkout-demo.fly.dev").replace(/\/$/, "");
+
 function orderSummary(order: OrderView) {
   return {
     order_id: order.id,
@@ -87,6 +90,7 @@ export function buildMcpServer(service: OrderService): McpServer {
           reviews: p.reviews,
           stock: p.stock,
           tagline: p.tagline,
+          image_url: `${PUBLIC_URL}${p.image}`,
         })),
         facets: result.facets,
       });
@@ -100,7 +104,7 @@ export function buildMcpServer(service: OrderService): McpServer {
     async ({ sku }) => {
       const product = getProduct(sku);
       if (!product) return asText({ error: `No product with sku ${sku}` });
-      return asText(product);
+      return asText({ ...product, image_url: `${PUBLIC_URL}${product.image}` });
     },
   );
 

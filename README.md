@@ -174,4 +174,4 @@ This is a demo of the core mechanism, not a finished product. Production would a
 
 ## Disclaimer
 
-This is an independent demo built against Airwallex's public sandbox API for exploration and discussion. It is not an Airwallex product and is not affiliated with, endorsed by, or sponsored by Airwallex. No real cards and no real money; Airwallex's published test cards only.
+This is an independent demo built against Airwallex's public sandbox API for exploration and discussion. It is not an Airwallex product and is not affiliated with, endorsed by, or sponsored by Airwallex. No real cards and no real money; Airwallex's published test cards only. Product photography is openly licensed; see [ATTRIBUTIONS.md](ATTRIBUTIONS.md).

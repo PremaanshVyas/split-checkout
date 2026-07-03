@@ -12,6 +12,7 @@ export interface Product {
   stock: number;
   tags: string[];
   art: string;
+  image: string;
 }
 
 export interface SearchResult {
@@ -40,6 +41,7 @@ export interface CartLine {
   quantity: number;
   color?: string;
   art: string;
+  image: string;
 }
 
 export interface OrderItemView {

@@ -27,9 +27,7 @@ export function CartView({ cart, onUpdateQty, onRemove, onCheckout, onBack }: Pr
           <ul className="cart-lines">
             {cart.map((line, i) => (
               <li key={`${line.sku}-${line.color ?? ""}`}>
-                <span className="cart-line-art" aria-hidden>
-                  {line.art}
-                </span>
+                <img className="cart-line-thumb" src={line.image} alt="" />
                 <div className="cart-line-info">
                   <strong>{line.name}</strong>
                   {line.color && <span className="muted small"> · {line.color}</span>}

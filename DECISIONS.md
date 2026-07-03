@@ -198,3 +198,13 @@ Every non-obvious choice in this project, dated, with the alternatives considere
 **Why:** Once the agentic mode became the differentiator, catalog realism became payment-demo realism: "find a matte-black grinder under $500 in stock and split it across my cards" exercises search, filtering, variant selection, basket assembly, and split payment in one sentence, which is the demo arc the successful agent-shopping products (ChatGPT shopping, Perplexity, Amazon's agents) all converge on. Design choices follow the field's emerging conventions deliberately: tool names and shapes mirror Shopify's storefront MCP (`search_catalog`, `get_product`, open browse tools with the payment step guarded), and Streamable HTTP is the current standard for remote MCP servers. The research behind this also sharpened the pitch: OpenAI/Stripe's ACP, Google's UCP, and AP2 all model a single payment credential per checkout; none covers splitting one purchase across funding sources.
 
 **Trade-offs accepted:** stock is validated but never decremented (a demo store must not wedge itself empty); the even-split option distributes remainder cents to the first cards; catalog search is in-memory over sixteen products, which is honest for a catalog that fits in one file.
+
+---
+
+## 2026-07-03: Real product photography, curated from open licenses
+
+**Decision:** The emoji product visuals were replaced with real photographs, sourced through the Openverse API and restricted to permissive licenses (fourteen CC0 from StockSnap and Rawpixel, two CC BY from Flickr, credited in ATTRIBUTIONS.md). Every image was reviewed by eye before selection; images are committed to the repo (about 650KB total at 900px) so the store stays self-contained, and the MCP catalog tools return absolute `image_url`s so agents can render product cards.
+
+**Alternatives:** Unsplash and Pexels have the best free product photography but block programmatic search, and hotlinking guessed CDN URLs risks broken or wrong images. AI-generated product shots were rejected outright: they read as fake at a glance, and a payments demo trades entirely on looking real. General open-license search (all Flickr sources) was tried first and produced amateur clutter unfit for a storefront.
+
+**Why it matters beyond looks:** a store that photographs like a real store makes the payment flows read as real, and the agent demo now returns product images an MCP client can display. The curation rule was strict: a wrong-but-pretty photo loses to nothing, and each photo had to plausibly *be* the product it sells.

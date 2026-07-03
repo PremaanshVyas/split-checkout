@@ -23,8 +23,8 @@ export function ProductDetail({ product, onAddToCart, onBuyNow, onBack }: Props)
         ← Back to store
       </button>
       <div className="product-detail-grid">
-        <div className="product-detail-visual" aria-hidden>
-          {product.art}
+        <div className="product-detail-visual">
+          <img src={product.image} alt={product.name} />
         </div>
         <div>
           <p className="muted small detail-category">{product.category}</p>

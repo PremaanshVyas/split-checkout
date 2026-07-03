@@ -21,8 +21,10 @@ export interface Product {
   reviews: number;
   stock: number;
   tags: string[];
-  /** Emoji used as the product visual, which keeps the demo self-contained. */
+  /** Emoji fallback for compact contexts. */
   art: string;
+  /** Product photo, served from the web build (see ATTRIBUTIONS.md). */
+  image: string;
 }
 
 export type Category =
@@ -37,6 +39,7 @@ export type Category =
 export const PRODUCTS: Product[] = [
   {
     sku: "aurora-ex-9",
+    image: "/products/aurora-ex-9.jpg",
     name: "Aurora EX-9 Espresso Machine",
     category: "espresso machines",
     tagline: "Dual boiler · PID · 58mm group",
@@ -53,6 +56,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "aurora-ex-5",
+    image: "/products/aurora-ex-5.jpg",
     name: "Aurora EX-5 Espresso Machine",
     category: "espresso machines",
     tagline: "Single boiler · thermoblock steam",
@@ -69,6 +73,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "aurora-lever-one",
+    image: "/products/aurora-lever-one.jpg",
     name: "Aurora Lever One",
     category: "espresso machines",
     tagline: "Manual lever · spring assisted",
@@ -85,6 +90,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "aurora-grinder-64",
+    image: "/products/aurora-grinder-64.jpg",
     name: "Aurora 64 Flat-Burr Grinder",
     category: "grinders",
     tagline: "64mm burrs · single dose",
@@ -101,6 +107,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "aurora-grinder-83",
+    image: "/products/aurora-grinder-83.jpg",
     name: "Aurora 83 Pro Grinder",
     category: "grinders",
     tagline: "83mm burrs · shop grade",
@@ -117,6 +124,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "aurora-hand-mill",
+    image: "/products/aurora-hand-mill.jpg",
     name: "Aurora Hand Mill",
     category: "grinders",
     tagline: "48mm conical · travel ready",
@@ -133,6 +141,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "aurora-kettle",
+    image: "/products/aurora-kettle.jpg",
     name: "Aurora Gooseneck Kettle",
     category: "kettles",
     tagline: "Variable temp · 0.9L",
@@ -149,6 +158,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "aurora-kettle-stove",
+    image: "/products/aurora-kettle-stove.jpg",
     name: "Aurora Stovetop Gooseneck",
     category: "kettles",
     tagline: "Induction ready · 1.0L",
@@ -164,6 +174,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "aurora-dripper",
+    image: "/products/aurora-dripper.jpg",
     name: "Aurora Ceramic Dripper",
     category: "brewers",
     tagline: "Cone dripper · size 02",
@@ -179,6 +190,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "aurora-press",
+    image: "/products/aurora-press.jpg",
     name: "Aurora Immersion Press",
     category: "brewers",
     tagline: "Full immersion · 350ml",
@@ -194,6 +206,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "aurora-cold-tower",
+    image: "/products/aurora-cold-tower.jpg",
     name: "Aurora Cold Drip Tower",
     category: "brewers",
     tagline: "Slow drip · 600ml",
@@ -210,6 +223,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "aurora-scale",
+    image: "/products/aurora-scale.jpg",
     name: "Aurora Brew Scale",
     category: "scales",
     tagline: "0.1g · auto timer",
@@ -225,6 +239,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "aurora-tamper",
+    image: "/products/aurora-tamper.jpg",
     name: "Aurora Precision Tamper",
     category: "accessories",
     tagline: "58.5mm · calibrated 15kg",
@@ -240,6 +255,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "aurora-milk-jug",
+    image: "/products/aurora-milk-jug.jpg",
     name: "Aurora Milk Pitcher",
     category: "accessories",
     tagline: "450ml · sharp spout",
@@ -255,6 +271,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "aurora-knock-box",
+    image: "/products/aurora-knock-box.jpg",
     name: "Aurora Knock Box",
     category: "accessories",
     tagline: "Solid ash bar · rubber core",
@@ -270,6 +287,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     sku: "aurora-barista-bundle",
+    image: "/products/aurora-barista-bundle.jpg",
     name: "Barista Station Bundle",
     category: "bundles",
     tagline: "EX-9 + 64 grinder + bench kit",

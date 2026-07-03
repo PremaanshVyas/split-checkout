@@ -117,8 +117,8 @@ export function ProductGrid({ onSelect }: { onSelect: (product: Product) => void
             tabIndex={0}
             onKeyDown={(e) => e.key === "Enter" && onSelect(product)}
           >
-            <div className="product-card-visual" aria-hidden>
-              {product.art}
+            <div className="product-card-visual">
+              <img src={product.image} alt={product.name} loading="lazy" />
             </div>
             <div className="product-card-body">
               <h2>{product.name}</h2>

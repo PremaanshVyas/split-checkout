@@ -101,7 +101,7 @@ export default function App() {
           i === existing ? { ...l, quantity: Math.min(10, l.quantity + quantity) } : l,
         );
       }
-      return [...prev, { sku: p.sku, name: p.name, price: p.price, quantity, color, art: p.art }];
+      return [...prev, { sku: p.sku, name: p.name, price: p.price, quantity, color, art: p.art, image: p.image }];
     });
     setPhase("cart");
   }
@@ -207,7 +207,7 @@ export default function App() {
           onAddToCart={addToCart}
           onBuyNow={(p, quantity, color) => {
             setCheckoutLines([
-              { sku: p.sku, name: p.name, price: p.price, quantity, color, art: p.art },
+              { sku: p.sku, name: p.name, price: p.price, quantity, color, art: p.art, image: p.image },
             ]);
             setRecoveryHint(false);
             setPhase("pay");
@@ -241,7 +241,7 @@ export default function App() {
             <ul className="pay-lines">
               {checkoutLines.map((l) => (
                 <li key={`${l.sku}-${l.color ?? ""}`}>
-                  <span aria-hidden>{l.art}</span> {l.quantity} × {l.name}
+                  <img className="pay-line-thumb" src={l.image} alt="" /> {l.quantity} × {l.name}
                   {l.color ? ` (${l.color})` : ""}
                   <strong>{fmt(l.price * l.quantity)}</strong>
                 </li>
