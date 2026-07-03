@@ -203,12 +203,28 @@ export class OrderService {
     }
 
     const secrets = new Map<string, string>();
+    const total = (totalCents / 100).toFixed(2);
     for (const [index, amount] of splits.entries()) {
+      // Every part is self-describing wherever it surfaces: the shopper's
+      // bank statement says which part of how many ("AURORA 1/2"), and the
+      // intent's metadata tells anyone opening it in the Airwallex
+      // dashboard what order it belongs to, the full total, and where its
+      // siblings are. Two transactions, one legible order.
       const intent = await this.airwallex.createPaymentIntent({
         amount,
         currency: "AUD",
         merchantOrderId: `${merchantOrderRef}-card${index + 1}`,
-        metadata: { order_group_id: group.id, slot_index: String(index + 1) },
+        descriptor: splits.length > 1 ? `AURORA ${index + 1}/${splits.length}` : "AURORA & CO",
+        metadata: {
+          order_group_id: group.id,
+          order_ref: merchantOrderRef,
+          split_part: `${index + 1} of ${splits.length}`,
+          order_total_aud: total,
+          note:
+            splits.length > 1
+              ? `Split-tender: part ${index + 1} of ${splits.length} of one ${total} AUD order. Siblings share order_ref ${merchantOrderRef}.`
+              : "Single-card order.",
+        },
       });
       const slot = this.store.addSlot({
         orderGroupId: group.id,

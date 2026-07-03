@@ -23,6 +23,8 @@ Visa's rules have explicitly supported split tender online since 2005, but imple
 
 That is exactly the shape of problem that belongs in the platform, not in every merchant's codebase.
 
+And the platform's side of the ledger holds up: the marginal cost of the second transaction is one fixed fee (~A$0.30, which per-order pricing could zero out), Visa's rules explicitly permit two cards on one order, the RBA's October 2026 reform that bans surcharging also cuts merchants' interchange by eight times the split's cost, and both transactions reconcile as one order through the `merchant_order_id` and metadata conventions this demo already populates. The full costed argument, with sources, is in [OPERATORS.md](OPERATORS.md).
+
 ## The agentic preview
 
 Since Airi's roadmap is agents that transact on a shopper's behalf, the demo also hosts a remote MCP server at https://split-checkout-demo.fly.dev/mcp. Paste that URL into Claude or Cursor and an agent can search a sixteen-product catalog by category, color, price, and stock, assemble a basket, and complete the purchase split across multiple cards, with the same all-or-nothing capture semantics, then refund it pro-rata. No install, no clone.

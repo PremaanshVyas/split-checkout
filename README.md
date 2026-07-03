@@ -93,6 +93,7 @@ web/      Vite + React checkout: store, split editor, sequential card
 
 - [DECISIONS.md](DECISIONS.md) records every non-obvious choice, dated, with alternatives and reasoning (including one genuine sandbox surprise involving 3DS).
 - [EVIDENCE.md](EVIDENCE.md) is the QA record: real intent IDs and screenshots for the happy path, the decline paths, and the full transaction-type matrix.
+- [OPERATORS.md](OPERATORS.md) answers the platform's objections with sources: the split's marginal cost is one fixed fee (~A$0.30), surcharging is moot in Australia after the RBA's October 2026 reform, Visa and Mastercard rules explicitly permit two-cards-one-order, and reconciliation works today through `merchant_order_id` and metadata this demo already populates.
 - `.mcp.json` ships a config for [Airwallex's Developer MCP](https://www.airwallex.com/docs/developer-tools/ai/developer-mcp) (part of Airwallex AgentOS), so AI coding tools working in this repo get live Airwallex API docs and sandbox tooling.
 
 ## Run it yourself
