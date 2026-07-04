@@ -122,6 +122,21 @@ Mixed schemes split cleanly too: one order paid $500 on a Visa leg plus $399 on 
 
 ![3DS bank verification modal](docs/evidence/3ds-modal.png)
 
+## Webhooks, live-proven, with a bonus
+
+With a webhook registered against the hosted demo, a live purchase (order `split-25bd4898`, $98 split $49/$49) produced the full signed lifecycle in the production logs, every delivery verified and applied:
+
+```
+webhook: payment_intent.created applied to intent int_hkdmjhgg5hk2meug5zv
+webhook: payment_intent.created applied to intent int_hkdm9crz9hk2meuk2v4
+webhook: payment_intent.requires_capture applied to intent int_hkdmjhgg5hk2meug5zv
+webhook: payment_intent.requires_capture applied to intent int_hkdm9crz9hk2meuk2v4
+webhook: payment_intent.succeeded applied to intent int_hkdmjhgg5hk2meug5zv
+webhook: payment_intent.succeeded applied to intent int_hkdm9crz9hk2meuk2v4
+```
+
+The bonus: the polling/webhook capture race that DECISIONS.md predicted and accepted as a demo-grade gap actually occurred on this first live delivery. Both channels reached the capture gate; one captured; the other's attempt failed cleanly upstream; the `succeeded` webhooks then settled local state to captured under the monotonic-transition rule. Airwallex's records confirm each intent captured exactly once ($49.00 each). A documented race, observed in the wild, converging exactly as designed.
+
 ## Sandbox finding worth knowing
 
 Airwallex's insufficient-funds test card (`5307 8373 6054 4518` at $80.51) runs a **3DS challenge (OTP `1234`) before returning the code-51 decline**. The demo handles this (the challenge renders in the checkout via `authFormContainer`), and the discovery is written up in [DECISIONS.md](DECISIONS.md). Use it in a manual run to see the 3DS plus issuer-decline path; the scripted evidence above uses the no-3DS risk-decline card so the run is deterministic.
