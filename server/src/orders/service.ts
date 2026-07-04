@@ -5,6 +5,7 @@ import type { PaymentIntent } from "../airwallex/types.js";
 import { getProduct, type Product } from "../catalog.js";
 import { friendlyDeclineMessage } from "./errorMessages.js";
 import type { MandateStore, MandateView } from "./mandates.js";
+import { withLock } from "./orderLock.js";
 import type { OrderStore } from "./store.js";
 import type { OrderGroup, PaymentSlot } from "./types.js";
 import { deriveGroupStatus } from "./types.js";
@@ -111,8 +112,16 @@ export class OrderService {
     splits?: number[],
   ): Promise<{ order: OrderView; mandate: MandateView }> {
     if (!this.mandates) throw new Error("Mandates are not configured.");
+    return withLock(`mandate:${code}`, () => this.mandateCheckoutUnlocked(code, items, splits));
+  }
+
+  private async mandateCheckoutUnlocked(
+    code: string,
+    items: OrderItemRequest[],
+    splits?: number[],
+  ): Promise<{ order: OrderView; mandate: MandateView }> {
     const totalCents = this.cartTotalCents(items);
-    const { pans } = this.mandates.authorizeSpend(code, totalCents);
+    const { pans } = this.mandates!.authorizeSpend(code, totalCents);
 
     let parts = splits;
     if (parts === undefined) {
@@ -127,9 +136,9 @@ export class OrderService {
 
     const order = await this.agentCheckout(items, parts, pans.map((pan) => ({ pan })));
     if (order.status === "captured") {
-      this.mandates.recordSpend(code, totalCents);
+      this.mandates!.recordSpend(code, totalCents);
     }
-    return { order, mandate: this.mandates.status(code) };
+    return { order, mandate: this.mandates!.status(code) };
   }
 
   /**
@@ -243,12 +252,14 @@ export class OrderService {
    * holds, the capture-together gate fires.
    */
   async verifySlot(orderGroupId: string, slotId: string, clientErrorCode?: string): Promise<OrderView> {
-    const slot = this.requireSlot(orderGroupId, slotId);
-    const intent = await this.airwallex.retrievePaymentIntent(slot.airwallex_intent_id);
-    this.applyIntentStatus(slot, intent, clientErrorCode);
-    this.recomputeGroupStatus(orderGroupId);
-    await this.captureIfAllHeld(orderGroupId);
-    return this.view(orderGroupId);
+    return withLock(orderGroupId, async () => {
+      const slot = this.requireSlot(orderGroupId, slotId);
+      const intent = await this.airwallex.retrievePaymentIntent(slot.airwallex_intent_id);
+      this.applyIntentStatus(slot, intent, clientErrorCode);
+      this.recomputeGroupStatus(orderGroupId);
+      await this.captureIfAllHeld(orderGroupId);
+      return this.view(orderGroupId);
+    });
   }
 
   /**
@@ -288,12 +299,17 @@ export class OrderService {
    * idempotent no-op. Returns false for intents we don't track.
    */
   async processIntentUpdate(intent: PaymentIntent): Promise<boolean> {
-    const slot = this.store.getSlotByIntentId(intent.id);
-    if (!slot) return false;
-    this.applyIntentStatus(slot, intent);
-    this.recomputeGroupStatus(slot.order_group_id);
-    await this.captureIfAllHeld(slot.order_group_id);
-    return true;
+    const found = this.store.getSlotByIntentId(intent.id);
+    if (!found) return false;
+    return withLock(found.order_group_id, async () => {
+      // Re-read inside the lock: a concurrent holder may have moved it.
+      const slot = this.store.getSlot(found.id);
+      if (!slot) return false;
+      this.applyIntentStatus(slot, intent);
+      this.recomputeGroupStatus(slot.order_group_id);
+      await this.captureIfAllHeld(slot.order_group_id);
+      return true;
+    });
   }
 
   /** Client secrets expire after 60 minutes; re-retrieving issues a fresh one. */
@@ -308,6 +324,10 @@ export class OrderService {
 
   /** Abandon the order: cancel every uncaptured intent, mark the group failed. */
   async abandonOrder(orderGroupId: string, reason = "order abandoned"): Promise<OrderView> {
+    return withLock(orderGroupId, () => this.abandonOrderUnlocked(orderGroupId, reason));
+  }
+
+  private async abandonOrderUnlocked(orderGroupId: string, reason: string): Promise<OrderView> {
     const slots = this.store.getSlotsForGroup(orderGroupId);
     for (const slot of slots) {
       if (slot.status === "created" || slot.status === "authorized") {
@@ -353,6 +373,10 @@ export class OrderService {
    * everything still refundable.
    */
   async refundOrder(orderGroupId: string, amount?: number): Promise<OrderView> {
+    return withLock(orderGroupId, () => this.refundOrderUnlocked(orderGroupId, amount));
+  }
+
+  private async refundOrderUnlocked(orderGroupId: string, amount?: number): Promise<OrderView> {
     const group = this.requireGroup(orderGroupId);
     if (group.status !== "captured") {
       throw new RefundError("Only fully captured orders can be refunded.");
@@ -406,6 +430,13 @@ export class OrderService {
       throw new SplitAmountError("Provide exactly one card per split part.");
     }
     const order = await this.createSplitOrder(items, splits);
+    return withLock(order.id, () => this.agentConfirmUnlocked(order, cards));
+  }
+
+  private async agentConfirmUnlocked(
+    order: OrderView,
+    cards: { pan: string; name?: string }[],
+  ): Promise<OrderView> {
     for (const [i, slotView] of order.slots.entries()) {
       const slot = this.requireSlot(order.id, slotView.id);
       try {

@@ -166,11 +166,11 @@ web/      Vite + React storefront: catalog with filters, cart, sequential
           card stepper on @airwallex/components-sdk, agent mode.
 ```
 
-Forty tests cover the state machine, refund allocation, mandate enforcement, webhook signatures, and catalog search; CI runs them plus typecheck, lint, and a production build on every push. The `.mcp.json` also points AI coding tools at [Airwallex's Developer MCP](https://www.airwallex.com/docs/developer-tools/ai/developer-mcp).
+Forty-seven tests cover the state machine, refund allocation, mandate enforcement, webhook signatures, catalog search, and the concurrency races; CI runs them plus typecheck, lint, and a production build on every push. The `.mcp.json` also points AI coding tools at [Airwallex's Developer MCP](https://www.airwallex.com/docs/developer-tools/ai/developer-mcp).
 
 ## Honest limitations
 
-This is a demo of the core mechanism, not a finished product. Production would additionally need: refund policy depth (per-merchant allocation choices, settlement tracking via `refund.*` webhooks); dispute handling across two issuers; webhook-first status (the signed listener is implemented and race-safe, but the demo stays polling-primary so it runs from a fresh clone with no public URL); capture-retry via an async worker; more than two cards in the UI (the data model and gate are already N-ary); and true partial authorization, so a low-balance prepaid card can approve what it holds with the remainder rolling to the next card. The known demo-grade gaps (unserialized capture race, bearer-token mandates, single-process accounting) are each named in [DECISIONS.md](DECISIONS.md) with the production answer.
+This is a demo of the core mechanism, not a finished product. Production would additionally need: refund policy depth (per-merchant allocation choices, settlement tracking via `refund.*` webhooks); dispute handling across two issuers; webhook-first status (the signed listener is implemented and race-safe, but the demo stays polling-primary so it runs from a fresh clone with no public URL); capture-retry via an async worker; more than two cards in the UI (the data model and gate are already N-ary); and true partial authorization, so a low-balance prepaid card can approve what it holds with the remainder rolling to the next card. The known demo-grade gaps (bearer-token mandates, in-process rather than distributed locking) are each named in [DECISIONS.md](DECISIONS.md) with the production answer; the polling/webhook capture race that was once on this list was predicted, then observed live, then closed with a per-order lock and race tests.
 
 ## Disclaimer
 

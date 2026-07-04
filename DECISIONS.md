@@ -154,6 +154,20 @@ Every non-obvious choice in this project, dated, with the alternatives considere
 
 **Known demo-grade gap, recorded for candor:** the two channels are not serialized, so polling and a webhook arriving in the same instant could both pass the capture gate and issue overlapping capture calls. There is no money risk (a card cannot be captured beyond its authorized amount, so the second call fails cleanly upstream and is recorded), but production would take a per-order lock or queue before the gate. Left unserialized here to keep the demo's concurrency story readable.
 
+*Update, 2026-07-04: this gap graduated. See "The race, closed" below.*
+
+---
+
+## 2026-07-04: The race, closed (predicted, observed, fixed)
+
+**What happened:** the paragraph above predicted the polling/webhook capture race in theory. On the very first live webhook delivery after registering the endpoint, it fired in practice: both channels reached the capture gate for the same order, one captured, the other's attempt failed cleanly upstream, and the `succeeded` webhooks converged local state under the monotonic-transition rule (the full observation is in EVIDENCE.md). No money moved twice; the design absorbed it exactly as written. But "tolerated" is not "correct," so it is now fixed.
+
+**Decision:** every mutating flow on an order group acquires an in-process keyed lock (`orderLock.ts`): client verify, webhook delivery, agent checkout's confirm-and-capture section, refunds, and cancellation all serialize per order, and mandate spends additionally serialize per mandate code so two concurrent purchases cannot both pass the budget check. The lock is a promise chain per key, self-cleaning when it drains; rejections reach their caller without poisoning the next holder.
+
+**Why in-process is the honest scope:** the demo runs deliberately single-machine (the SQLite topology entry above), so an in-process lock is complete for it, and pretending otherwise with a distributed lock would be decoration. The DECISIONS-grade statement for production is unchanged in substance: N instances need a database advisory lock or a per-order queue in front of the gate.
+
+**Covered by three race tests that fail without the lock:** concurrent polling and webhook deliveries capture each intent exactly once; two concurrent refunds cannot exceed the captured total (the second is refused, not raced); two concurrent mandate spends cannot both fit a budget that only covers one. This also quietly upgraded refunds and mandates, whose check-then-write sequences had the same class of gap.
+
 ---
 
 ## 2026-07-02: Refund allocation, pulled in from out-of-scope

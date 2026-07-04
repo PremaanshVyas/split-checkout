@@ -135,7 +135,7 @@ webhook: payment_intent.succeeded applied to intent int_hkdmjhgg5hk2meug5zv
 webhook: payment_intent.succeeded applied to intent int_hkdm9crz9hk2meuk2v4
 ```
 
-The bonus: the polling/webhook capture race that DECISIONS.md predicted and accepted as a demo-grade gap actually occurred on this first live delivery. Both channels reached the capture gate; one captured; the other's attempt failed cleanly upstream; the `succeeded` webhooks then settled local state to captured under the monotonic-transition rule. Airwallex's records confirm each intent captured exactly once ($49.00 each). A documented race, observed in the wild, converging exactly as designed.
+The bonus: the polling/webhook capture race that DECISIONS.md predicted and accepted as a demo-grade gap actually occurred on this first live delivery. Both channels reached the capture gate; one captured; the other's attempt failed cleanly upstream; the `succeeded` webhooks then settled local state to captured under the monotonic-transition rule. Airwallex's records confirm each intent captured exactly once ($49.00 each). A documented race, observed in the wild, converging exactly as designed. It has since been closed outright: every mutating flow now serializes per order behind a keyed lock, with race tests (concurrent capture, concurrent refunds, concurrent mandate spends) that fail without it.
 
 ## Sandbox finding worth knowing
 
