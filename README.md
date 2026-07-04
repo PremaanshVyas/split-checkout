@@ -1,4 +1,4 @@
-# Split Checkout
+# Split Checkout (Read below for the problem statement)
 
 [![CI](https://github.com/PremaanshVyas/split-checkout/actions/workflows/ci.yml/badge.svg)](https://github.com/PremaanshVyas/split-checkout/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
