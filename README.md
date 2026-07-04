@@ -176,7 +176,7 @@ web/      Vite + React storefront: catalog with filters, cart, sequential
           card stepper on @airwallex/components-sdk, agent mode.
 ```
 
-Forty-seven tests cover the state machine, refund allocation, mandate enforcement, webhook signatures, catalog search, and the concurrency races; CI runs them plus typecheck, lint, and a production build on every push. The `.mcp.json` also points AI coding tools at [Airwallex's Developer MCP](https://www.airwallex.com/docs/developer-tools/ai/developer-mcp).
+Forty-seven tests cover the state machine, refund allocation, mandate enforcement, webhook signatures, catalog search, and the concurrency races; CI runs them plus typecheck, lint, and a production build on every push. The `.mcp.json` also points AI coding tools at [Airwallex's Developer MCP](https://www.airwallex.com/docs/developer-tools/ai/developer-mcp) (their endpoint prompts for an Airwallex login on first connect; the demo's own `/mcp` needs none).
 
 ## Honest limitations
 
