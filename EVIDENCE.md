@@ -56,6 +56,16 @@ And the dashboard's Analytics view of the same activity: a 100.00% payment accep
 
 ![Airwallex dashboard analytics: acceptance rate and attempt stats](docs/evidence/dashboard-analytics.gif)
 
+## The decline path in Airwallex's own records
+
+Order `split-0012a3a7`: a $700 Visa hold was placed, the $199 leg was declined by the risk engine, nothing was captured, and the surviving hold was explicitly released. The dashboard shows both legs Cancelled:
+
+![Dashboard list: both legs of the declined order cancelled, nothing captured](docs/evidence/dashboard-decline-list.png)
+
+The declined leg's detail is Airwallex's own timeline of the safety story: Created, then Blocked, never Authorized, and Cancelled, on the always-declines test card:
+
+![Dashboard detail: the declined leg's timeline](docs/evidence/dashboard-decline-detail.png)
+
 ## Decline recovery: a failed single-card payment converts to a split
 
 The rescue mode, and the deployment with the strongest commercial evidence (Air Europa's equivalent flow converts at 95.1%). A standard one-card payment is attempted with the always-declines card; instead of a dead end, the checkout offers to split:
