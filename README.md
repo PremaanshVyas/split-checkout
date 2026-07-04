@@ -1,8 +1,24 @@
-# Split Checkout (Read below for the problem statement)
+# Airwallex Split Payments
 
-[![CI](https://github.com/PremaanshVyas/split-checkout/actions/workflows/ci.yml/badge.svg)](https://github.com/PremaanshVyas/split-checkout/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/PremaanshVyas/airwallex-split-payments/actions/workflows/ci.yml/badge.svg)](https://github.com/PremaanshVyas/airwallex-split-payments/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Pay for one order with two cards, on Airwallex.** A working store where a payment can split across multiple cards, a declined card converts into a rescue instead of a lost sale, and an AI agent can shop and pay under a budget the server enforces.
+**The checkout primitive Airwallex doesn't have yet: one payment, multiple cards.** This repo is a payment-orchestration architecture, an agent-delegation layer, and a costed platform proposal, demonstrated end to end on Airwallex's real sandbox API. The coffee store you'll see below is not the product; it is the test harness the architecture runs in.
+
+## The problem
+
+I won $2,000 in an essay competition, paid out as two $1,000 prepaid Visa gift cards. I tried to buy a Galaxy S26 Ultra on Samsung's Australian online store: AUD $1,389 after stacking an education discount and two more from their sales chat. I had the money, on two perfectly valid Visa-network cards, and the checkout physically could not take it. One card per order. JB Hi-Fi was the same. So was almost everywhere else I checked, even though any register in any physical store handles split payment without a second thought.
+
+That is not a niche inconvenience. [43% of US adults](https://www.bankrate.com/credit-cards/news/gift-cards-survey/) sit on unused gift cards averaging $244 each; Stripe's checkout research found [85% of shoppers abandon](https://stripe.com/newsroom/news/state-of-checkouts-2022) a purchase when their preferred payment method isn't offered; and insufficient funds is the [single largest cause of card declines](https://cdn2.hubspot.net/hubfs/464903/Ethoca%20Research%20Report%20-%20False%20Declines.pdf), the exact failure a second card fixes. And it is not really the merchants' fault: Visa's rules have permitted two-cards-one-order by name since 2005, but every checkout API takes exactly one card per payment, so each merchant would have to build the whole orchestration alone. That makes it a platform-shaped problem, and this repo is the platform-shaped answer.
+
+## What this repo actually is
+
+Three things, in order of importance:
+
+1. **The orchestration architecture.** One order becomes N PaymentIntents; every card is authorized without being charged; capture is all-or-nothing behind a race-safe gate; declines rescue in place; abandoned holds are reversed within Visa's rules; refunds allocate back pro-rata to the cent. All of it on Airwallex's existing primitives: no new money movement, no custody, no licensing exposure.
+2. **The agent-delegation layer.** A remote MCP server plus spending mandates: a human grants a budget, an AI agent shops and pays across multiple funding sources without ever touching a card, and the server, not the agent's judgment, enforces the limit. None of the emerging agentic-commerce standards cover multi-source payment, and Airwallex's own Airi wallet stores multiple cards but cannot combine them. This is that missing piece, working.
+3. **The platform proposal.** [OPERATORS.md](OPERATORS.md) prices the whole thing from Airwallex's side (the marginal cost is one ~A$0.30 fixed fee), settles the surcharge question against the RBA's October 2026 reform, verifies scheme legality from the rulebooks, and lays out a phased rollout where step one is a config toggle and no step touches custody or scheme filings.
+
+Here is the architecture doing its job in the demo harness:
 
 ![Demo: a declined card converts into a split across two cards, captured together](docs/demo.gif)
 
@@ -14,13 +30,7 @@
 
 > **Try it now: https://split-checkout-demo.fly.dev** (sandbox only, no real money; test cards are on the checkout page). Agents can shop it too: add `https://split-checkout-demo.fly.dev/mcp` to Claude or Cursor. New here? [PITCH.md](PITCH.md) is the two-minute story.
 
-## The problem
-
-I won $2,000 in an essay competition, paid out as two $1,000 prepaid Visa gift cards. I tried to buy a Galaxy S26 Ultra on Samsung's Australian online store: AUD $1,389 after stacking an education discount and two more from their sales chat. I had the money, on two perfectly valid Visa-network cards, and the checkout physically could not take it. One card per order. JB Hi-Fi was the same. So was almost everywhere else I checked, even though any register in any physical store handles split payment without a second thought.
-
-That is not a niche inconvenience. [43% of US adults](https://www.bankrate.com/credit-cards/news/gift-cards-survey/) sit on unused gift cards averaging $244 each; Stripe's checkout research found [85% of shoppers abandon](https://stripe.com/newsroom/news/state-of-checkouts-2022) a purchase when their preferred payment method isn't offered; and insufficient funds is the [single largest cause of card declines](https://cdn2.hubspot.net/hubfs/464903/Ethoca%20Research%20Report%20-%20False%20Declines.pdf), the exact failure a second card fixes. This repo is the fix, built on Airwallex's sandbox using nothing but their existing primitives: no new money movement, no custody, just orchestration.
-
-## What it does
+## Demonstrated capabilities
 
 - One order becomes N PaymentIntents, each card authorized without being charged (`autoCapture: false`); capture happens together only when every hold succeeds, so a declined card never strands a charged one.
 - Two checkout modes: choose to split upfront, or pay normally and get offered a split when the card declines (the mode behind Air Europa's measured [EUR 2.4M recovery](https://thefintechtimes.com/air-europa-selects-hands-in-to-add-split-payments-to-checkout-boosting-revenue-by-e3-8million/) at 95.1% conversion).
@@ -127,7 +137,7 @@ The refusals come from the payment layer, not the agent's judgment. The shape mi
 Node 20+ and a free [Airwallex sandbox account](https://www.airwallex.com/docs/developer-tools/sandbox-environment) (no KYC, instant).
 
 ```bash
-git clone https://github.com/PremaanshVyas/split-checkout.git && cd split-checkout
+git clone https://github.com/PremaanshVyas/airwallex-split-payments.git && cd airwallex-split-payments
 cp .env.example .env
 # fill in AIRWALLEX_CLIENT_ID and AIRWALLEX_API_KEY
 # (demo.airwallex.com > Settings > Developer > API keys > Generate)
